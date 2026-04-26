@@ -1,0 +1,4557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pseudo Haptics Sound Pavilion</title>
+<style>
+:root {
+  color-scheme: light;
+  --panel-bg: rgba(251, 248, 241, 0.78);
+  --panel-border: rgba(78, 66, 52, 0.14);
+  --text-main: #2d241a;
+  --text-soft: #72614f;
+  --accent: #b57a42;
+  --shadow: 0 20px 48px rgba(30, 21, 13, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Segoe UI", Arial, sans-serif;
+  cursor: none;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 246, 225, 0.8), transparent 42%),
+    radial-gradient(circle at 80% 10%, rgba(218, 232, 255, 0.65), transparent 38%),
+    linear-gradient(180deg, #eef1f5 0%, #dde4eb 52%, #d2d8e1 100%);
+}
+
+button,
+canvas {
+  cursor: none;
+}
+
+#world {
+  width: 100vw;
+  height: 100vh;
+  display: block;
+}
+
+#hud,
+#hint,
+#overlay,
+#status {
+  position: fixed;
+  z-index: 10;
+  color: var(--text-main);
+}
+
+#hud {
+  top: 20px;
+  left: 20px;
+  min-width: 210px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.3), rgba(245, 239, 230, 0.14));
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  box-shadow:
+    0 14px 36px rgba(30, 21, 13, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 -1px 0 rgba(120, 98, 73, 0.12);
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+}
+
+#hud .label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+#hud .value {
+  display: block;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+#hud .sub {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-soft);
+}
+
+#hint {
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(83, 78, 70, 0.08);
+  box-shadow: 0 14px 30px rgba(39, 31, 21, 0.12);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: #4e4337;
+  text-align: center;
+  backdrop-filter: blur(14px);
+}
+
+#status {
+  right: 20px;
+  top: 20px;
+  padding: 12px 14px;
+  max-width: 320px;
+  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.3), rgba(237, 243, 255, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  box-shadow:
+    0 14px 34px rgba(39, 31, 21, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    inset 0 -1px 0 rgba(92, 84, 72, 0.1);
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(60, 49, 38, 0.9);
+  backdrop-filter: blur(22px) saturate(135%);
+  -webkit-backdrop-filter: blur(22px) saturate(135%);
+}
+
+#tuningPanel {
+  position: fixed;
+  right: 20px;
+  top: 118px;
+  z-index: 12;
+  width: min(330px, calc(100vw - 40px));
+  padding: 14px 14px 12px;
+  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.28), rgba(239, 245, 255, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  box-shadow:
+    0 14px 34px rgba(39, 31, 21, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    inset 0 -1px 0 rgba(92, 84, 72, 0.1);
+  backdrop-filter: blur(20px) saturate(132%);
+  -webkit-backdrop-filter: blur(20px) saturate(132%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 200ms ease, transform 200ms ease, visibility 200ms ease;
+  overflow: hidden;
+}
+
+body.experience-ready #tuningPanel {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+#tuningPanel .title {
+  display: block;
+  padding-right: 34px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #5e4d3b;
+  font-weight: 600;
+}
+
+.panel-header {
+  position: relative;
+  min-height: 28px;
+}
+
+#tuningPanel .panel-header {
+  margin-bottom: 6px;
+}
+
+#tuningPanel .sub {
+  margin: 0 0 10px;
+  font-size: 11px;
+  color: rgba(78, 65, 50, 0.84);
+  line-height: 1.35;
+}
+
+#monitorPanel {
+  position: fixed;
+  left: 20px;
+  top: 150px;
+  z-index: 12;
+  width: min(330px, calc(100vw - 40px));
+  padding: 12px 12px 10px;
+  border-radius: 16px;
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.28), rgba(239, 245, 255, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  box-shadow:
+    0 14px 34px rgba(39, 31, 21, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.52),
+    inset 0 -1px 0 rgba(92, 84, 72, 0.1);
+  backdrop-filter: blur(20px) saturate(132%);
+  -webkit-backdrop-filter: blur(20px) saturate(132%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity 200ms ease, transform 200ms ease, visibility 200ms ease;
+  overflow: hidden;
+}
+
+.panel-minimize-btn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(113, 92, 67, 0.24);
+  background: rgba(255, 255, 255, 0.6);
+  color: #4f4031;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  text-align: center;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 3;
+  transition: transform 120ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.panel-minimize-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 8px 14px rgba(55, 43, 29, 0.12);
+}
+
+#tuningPanel.is-minimized .panel-minimize-btn,
+#monitorPanel.is-minimized .panel-minimize-btn {
+  background: rgba(255, 255, 255, 0.74);
+}
+
+#tuningPanel .panel-content,
+#monitorPanel .panel-content {
+  margin-top: 0;
+}
+
+#tuningPanel.is-minimized,
+#monitorPanel.is-minimized {
+  padding-bottom: 10px;
+}
+
+#tuningPanel.is-minimized .panel-content,
+#monitorPanel.is-minimized .panel-content {
+  display: none;
+}
+
+body.experience-ready #monitorPanel {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+#monitorPanel .title {
+  display: block;
+  padding-right: 34px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #5e4d3b;
+  font-weight: 600;
+}
+
+#monitorPanel .panel-header {
+  margin-bottom: 4px;
+}
+
+#monitorPanel .sub {
+  margin: 0 0 8px;
+  font-size: 11px;
+  color: rgba(78, 65, 50, 0.84);
+  line-height: 1.35;
+}
+
+.monitor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.monitor-metric {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 10px;
+  padding: 5px 7px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.monitor-metric .k {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(75, 63, 49, 0.78);
+}
+
+.monitor-metric .v {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  color: #3f3328;
+  font-variant-numeric: tabular-nums;
+}
+
+.monitor-chart {
+  margin-top: 8px;
+}
+
+.monitor-chart .chart-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(78, 65, 50, 0.8);
+}
+
+.monitor-chart canvas {
+  display: block;
+  width: 100%;
+  height: 84px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.18));
+  border: 1px solid rgba(255, 255, 255, 0.26);
+}
+
+.tuning-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.tuning-row label {
+  font-size: 12px;
+  color: #4b3f31;
+}
+
+.tuning-row .value {
+  font-size: 11px;
+  color: #6f5f4d;
+  font-variant-numeric: tabular-nums;
+}
+
+.tuning-row input[type="range"] {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
+#tuningResetButton {
+  margin-top: 8px;
+  width: 100%;
+  border: 1px solid rgba(120, 95, 67, 0.24);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4d3f31;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(240, 232, 220, 0.56));
+  box-shadow: 0 6px 14px rgba(69, 53, 33, 0.1);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+#tuningResetButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 9px 18px rgba(69, 53, 33, 0.14);
+}
+
+#tuningResetButton:active {
+  transform: translateY(0);
+}
+
+.pick-audio-folder-btn {
+  margin-top: 8px;
+  width: 100%;
+  border: 1px solid rgba(120, 95, 67, 0.22);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #5a4732;
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: 0 6px 14px rgba(69, 53, 33, 0.08);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.pick-audio-folder-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 9px 18px rgba(69, 53, 33, 0.12);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+#overlay {
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(180deg, rgba(242, 245, 249, 0.84), rgba(223, 229, 236, 0.92)),
+    radial-gradient(circle at 30% 20%, rgba(255, 247, 230, 0.7), transparent 34%);
+  transition: opacity 220ms ease, visibility 220ms ease;
+}
+
+#overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.overlay-card {
+  width: min(420px, calc(100vw - 40px));
+  padding: 28px 28px 24px;
+  border-radius: 24px;
+  background: rgba(255, 252, 246, 0.84);
+  border: 1px solid rgba(85, 66, 44, 0.12);
+  box-shadow: 0 28px 64px rgba(26, 18, 12, 0.16);
+  text-align: center;
+  backdrop-filter: blur(18px);
+}
+
+.overlay-card h1 {
+  margin: 0 0 12px;
+  font-size: 32px;
+  line-height: 1.05;
+  font-weight: 650;
+}
+
+.overlay-card p {
+  margin: 0 0 18px;
+  line-height: 1.6;
+  color: var(--text-soft);
+  font-size: 14px;
+}
+
+#startButton {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: #fff8f0;
+  background: linear-gradient(135deg, #b77639, #855126);
+  box-shadow: 0 14px 26px rgba(126, 77, 32, 0.24);
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+}
+
+#pickFolderButton {
+  margin-top: 10px;
+  appearance: none;
+  border: 1px solid rgba(114, 87, 56, 0.2);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #5a4732;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 10px 20px rgba(53, 39, 24, 0.1);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+#pickFolderButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(53, 39, 24, 0.13);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+#startButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 30px rgba(126, 77, 32, 0.28);
+}
+
+#startButton:disabled {
+  opacity: 0.72;
+  cursor: none;
+}
+
+#materialCursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 30;
+  pointer-events: none;
+  color: var(--accent);
+  will-change: transform;
+  --cursor-glow-size: 46px;
+  --cursor-glow-opacity: 0.65;
+  --cursor-glow-blur: 4px;
+  --cursor-ring-size: 28px;
+  --cursor-ring-over-size: 34px;
+  --cursor-ring-hover-size: 40px;
+  --cursor-ring-drag-size: 24px;
+  --cursor-ring-border: 1.5px;
+  --cursor-ring-hover-border: 2px;
+  --cursor-dot-size: 7px;
+  --cursor-dot-drag-size: 9px;
+}
+
+#materialCursor .ring,
+#materialCursor .dot,
+#materialCursor .glow {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+}
+
+#materialCursor .glow {
+  width: var(--cursor-glow-size);
+  height: var(--cursor-glow-size);
+  background: radial-gradient(circle, rgba(181, 122, 66, 0.28) 0%, transparent 70%);
+  opacity: var(--cursor-glow-opacity);
+  filter: blur(var(--cursor-glow-blur));
+}
+
+#materialCursor .ring {
+  width: var(--cursor-ring-size);
+  height: var(--cursor-ring-size);
+  border: var(--cursor-ring-border) solid currentColor;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.26) inset,
+    0 0 28px rgba(181, 122, 66, 0.24);
+  transition: width 110ms ease, height 110ms ease, border-width 110ms ease;
+}
+
+#materialCursor .dot {
+  width: var(--cursor-dot-size);
+  height: var(--cursor-dot-size);
+  background: currentColor;
+  box-shadow: 0 0 12px rgba(181, 122, 66, 0.28);
+  transition: width 110ms ease, height 110ms ease;
+}
+
+#materialCursor.is-over-pad .ring {
+  width: var(--cursor-ring-over-size);
+  height: var(--cursor-ring-over-size);
+}
+
+#materialCursor.is-hovering .ring {
+  width: var(--cursor-ring-hover-size);
+  height: var(--cursor-ring-hover-size);
+  border-width: var(--cursor-ring-hover-border);
+}
+
+#materialCursor.is-dragging .ring {
+  width: var(--cursor-ring-drag-size);
+  height: var(--cursor-ring-drag-size);
+}
+
+#materialCursor.is-dragging .dot {
+  width: var(--cursor-dot-drag-size);
+  height: var(--cursor-dot-drag-size);
+}
+
+#sampleTooltip {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 31;
+  transform: translate(-50%, -140%);
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #f8fbff;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  backdrop-filter: blur(16px) saturate(135%);
+  -webkit-backdrop-filter: blur(16px) saturate(135%);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28);
+}
+
+#sampleTooltip.show {
+  opacity: 1;
+}
+
+/* Vision Pro style UI override */
+:root {
+  color-scheme: dark;
+  --panel-bg: linear-gradient(160deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.07));
+  --panel-border: rgba(255, 255, 255, 0.24);
+  --text-main: #f7fbff;
+  --text-soft: rgba(228, 240, 255, 0.78);
+  --accent: #cde9ff;
+}
+
+html,
+body {
+  font-family: "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(190, 220, 255, 0.16), transparent 44%),
+    radial-gradient(circle at 82% 14%, rgba(255, 234, 210, 0.13), transparent 40%),
+    linear-gradient(180deg, #111319 0%, #0d1016 54%, #090c11 100%);
+}
+
+#hud,
+#status,
+#tuningPanel,
+#monitorPanel,
+#hint {
+  color: var(--text-main);
+  background: var(--panel-bg);
+  border-color: var(--panel-border);
+  backdrop-filter: blur(26px) saturate(140%);
+  -webkit-backdrop-filter: blur(26px) saturate(140%);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 -1px 0 rgba(120, 149, 184, 0.2);
+}
+
+#hud .label,
+#hud .sub,
+#tuningPanel .sub,
+#monitorPanel .sub,
+.monitor-chart .chart-label,
+.monitor-metric .k,
+.tuning-row .value {
+  color: var(--text-soft);
+}
+
+#tuningPanel .title,
+#monitorPanel .title,
+.tuning-row label,
+.monitor-metric .v {
+  color: var(--text-main);
+}
+
+.monitor-metric,
+.monitor-chart canvas {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.panel-minimize-btn,
+#tuningResetButton,
+#pickFolderButton {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+#overlay {
+  background:
+    linear-gradient(180deg, rgba(10, 13, 18, 0.78), rgba(8, 10, 14, 0.9)),
+    radial-gradient(circle at 30% 20%, rgba(190, 221, 255, 0.18), transparent 34%);
+}
+
+.overlay-card {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.28);
+  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.36);
+}
+
+#startButton {
+  color: #09111a;
+  background: linear-gradient(135deg, #e9f3ff, #bedcff);
+  box-shadow: 0 14px 26px rgba(96, 148, 198, 0.35);
+}
+
+input[type="range"] {
+  accent-color: #d8ecff;
+}
+</style>
+</head>
+<body>
+
+<canvas id="world"></canvas>
+
+<div id="hud">
+  <span class="label">Current Material</span>
+  <span class="value" id="materialName">Wood</span>
+  <span class="sub" id="materialDescription">Warm drag with restrained highs.</span>
+</div>
+
+<div id="status">Click Start Experience to load and unlock audio. If your browser blocks local audio fetch, the page will switch to a direct file playback fallback.</div>
+
+<div id="tuningPanel">
+  <button class="panel-minimize-btn" type="button" data-panel-target="tuningPanel" aria-label="Minimize sensation mixer" aria-expanded="true">−</button>
+  <div class="panel-header">
+    <span class="title">Sensation Mixer</span>
+  </div>
+  <div class="panel-content">
+  <p class="sub">One control updates sound texture + cursor physics + cursor visual response.</p>
+
+  <div class="tuning-row">
+    <label for="hardnessControl">Hardness</label>
+    <span class="value" id="hardnessValue">50%</span>
+    <input id="hardnessControl" type="range" min="0" max="100" step="1" value="50">
+  </div>
+
+  <div class="tuning-row">
+    <label for="roughnessControl">Roughness</label>
+    <span class="value" id="roughnessValue">50%</span>
+    <input id="roughnessControl" type="range" min="0" max="100" step="1" value="50">
+  </div>
+
+  <div class="tuning-row">
+    <label for="viscosityControl">Viscosity</label>
+    <span class="value" id="viscosityValue">50%</span>
+    <input id="viscosityControl" type="range" min="0" max="100" step="1" value="50">
+  </div>
+
+  <div class="tuning-row">
+    <label for="elasticityControl">Elasticity</label>
+    <span class="value" id="elasticityValue">50%</span>
+    <input id="elasticityControl" type="range" min="0" max="100" step="1" value="50">
+  </div>
+
+  <div class="tuning-row" style="margin-bottom:0;">
+    <label for="densityControl">Density</label>
+    <span class="value" id="densityValue">50%</span>
+    <input id="densityControl" type="range" min="0" max="100" step="1" value="50">
+  </div>
+
+  <div class="tuning-row">
+    <label for="reverbControl">Reverb</label>
+    <span class="value" id="reverbValue">D50 / W50</span>
+    <input id="reverbControl" type="range" min="0" max="100" step="1" value="50">
+  </div>
+
+  <div class="tuning-row" style="margin-bottom:0;">
+    <label for="delayControl">Delay</label>
+    <span class="value" id="delayValue">220ms</span>
+    <input id="delayControl" type="range" min="20" max="600" step="1" value="220">
+  </div>
+
+  <div class="tuning-row">
+    <label for="temperatureControl">Temperature</label>
+    <span class="value" id="temperatureValue">22°C</span>
+    <input id="temperatureControl" type="range" min="0" max="100" step="1" value="50">
+  </div>
+
+  <div class="tuning-row" style="margin-bottom:0;">
+    <label for="humidityControl">Humidity</label>
+    <span class="value" id="humidityValue">50%</span>
+    <input id="humidityControl" type="range" min="0" max="100" step="1" value="50">
+  </div>
+
+  <button id="tuningResetButton" type="button">Reset to Neutral</button>
+  </div>
+</div>
+
+<div id="monitorPanel">
+  <button class="panel-minimize-btn" type="button" data-panel-target="monitorPanel" aria-label="Minimize audio monitor" aria-expanded="true">−</button>
+  <div class="panel-header">
+    <span class="title">Audio Monitor</span>
+  </div>
+  <div class="panel-content">
+  <p class="sub">Realtime ADSR envelope and EQ tilt from current material + sensation controls.</p>
+
+  <div class="monitor-grid">
+    <div class="monitor-metric"><span class="k">Attack</span><span class="v" id="monitorAttack">0.030s</span></div>
+    <div class="monitor-metric"><span class="k">Decay</span><span class="v" id="monitorDecay">0.090s</span></div>
+    <div class="monitor-metric"><span class="k">Sustain</span><span class="v" id="monitorSustain">0.40</span></div>
+    <div class="monitor-metric"><span class="k">Release</span><span class="v" id="monitorRelease">0.050s</span></div>
+  </div>
+
+  <div class="monitor-chart">
+    <span class="chart-label">ADSR Envelope</span>
+    <canvas id="adsrMonitorCanvas" width="300" height="84"></canvas>
+  </div>
+
+  <div class="monitor-chart">
+    <span class="chart-label">EQ (Low / Mid / High)</span>
+    <canvas id="eqMonitorCanvas" width="300" height="84"></canvas>
+  </div>
+  </div>
+</div>
+
+<div id="hint">Left drag orbit | Wheel zoom | W forward / S back / A D strafe (Q/E up/down, Shift accelerate) | Hover sample to preview name</div>
+
+<div id="overlay">
+  <div class="overlay-card">
+    <h1>Start Experience</h1>
+  <p>This pavilion loads recordings from your local <code>sound effect</code> folder. Click once to load audio, then explore the pad with the physical cursor while the virtual material cursor lags, slips, snaps, and glides.</p>
+    <button id="startButton" type="button">Start Experience</button>
+  </div>
+</div>
+
+<div id="materialCursor" aria-hidden="true">
+  <div class="glow"></div>
+  <div class="ring"></div>
+  <div class="dot"></div>
+</div>
+<div id="sampleTooltip" aria-hidden="true"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158/examples/js/loaders/RGBELoader.js"></script>
+<script>
+const canvas = document.getElementById("world");
+const overlay = document.getElementById("overlay");
+const startButton = document.getElementById("startButton");
+const materialNameEl = document.getElementById("materialName");
+const materialDescriptionEl = document.getElementById("materialDescription");
+const statusEl = document.getElementById("status");
+const cursorEl = document.getElementById("materialCursor");
+const sampleTooltipEl = document.getElementById("sampleTooltip");
+const hardnessInput = document.getElementById("hardnessControl");
+const roughnessInput = document.getElementById("roughnessControl");
+const viscosityInput = document.getElementById("viscosityControl");
+const elasticityInput = document.getElementById("elasticityControl");
+const densityInput = document.getElementById("densityControl");
+const reverbInput = document.getElementById("reverbControl");
+const delayInput = document.getElementById("delayControl");
+const temperatureInput = document.getElementById("temperatureControl");
+const humidityInput = document.getElementById("humidityControl");
+const hardnessValueEl = document.getElementById("hardnessValue");
+const roughnessValueEl = document.getElementById("roughnessValue");
+const viscosityValueEl = document.getElementById("viscosityValue");
+const elasticityValueEl = document.getElementById("elasticityValue");
+const densityValueEl = document.getElementById("densityValue");
+const reverbValueEl = document.getElementById("reverbValue");
+const delayValueEl = document.getElementById("delayValue");
+const temperatureValueEl = document.getElementById("temperatureValue");
+const humidityValueEl = document.getElementById("humidityValue");
+const tuningResetButton = document.getElementById("tuningResetButton");
+const adsrMonitorCanvas = document.getElementById("adsrMonitorCanvas");
+const eqMonitorCanvas = document.getElementById("eqMonitorCanvas");
+const monitorAttackEl = document.getElementById("monitorAttack");
+const monitorDecayEl = document.getElementById("monitorDecay");
+const monitorSustainEl = document.getElementById("monitorSustain");
+const monitorReleaseEl = document.getElementById("monitorRelease");
+
+const sampleKeys = ["wood", "paper", "fabric", "rubber", "sand", "metal", "glass", "ceramic", "ice"];
+const pointer = new THREE.Vector2();
+const raycaster = new THREE.Raycaster();
+const clock = new THREE.Clock();
+const sampleGroups = new Map();
+const sampleHitboxes = [];
+const surfaceTargets = [];
+const sampleScaleTarget = new THREE.Vector3();
+const TAU = Math.PI * 2;
+const STUDIO_HDR_PATH = "HDRI/small_empty_room_1_4k.hdr";
+
+let scene;
+let camera;
+let renderer;
+let frictionPad;
+let pedestalTop;
+let sceneTextureSet = null;
+const occlusionWalls = [];
+const wallOcclusionRaycaster = new THREE.Raycaster();
+let hoveredSampleKey = null;
+let currentMaterial = "wood";
+let audioCtx = null;
+let materialCursor = null;
+let hapticAudio = null;
+let activeAudioMaterialKey = null;
+
+const orbitState = {
+  yaw: 0.74,
+  pitch: 0.42,
+  radius: 7.2,
+  minRadius: 3.8,
+  maxRadius: 13.5,
+  dragging: false,
+  lastX: 0,
+  lastY: 0,
+  target: new THREE.Vector3(0, 1.08, 0)
+};
+
+const moveState = {
+  KeyW: false,
+  KeyA: false,
+  KeyS: false,
+  KeyD: false,
+  KeyQ: false,
+  KeyE: false,
+  ShiftLeft: false,
+  ShiftRight: false
+};
+
+const interactionState = {
+  onPad: false,
+  padScaleTarget: 1,
+  orbitDragging: false,
+  surfaceActive: false,
+  surfaceHoldUntil: 0,
+  surfaceMaterialKey: null,
+  activeSurfaceMesh: null
+};
+
+const SURFACE_EXIT_HYSTERESIS_MS = 120;
+const DELAY_TIME_MS_LIMITS = {
+  min: 20,
+  max: 600,
+  neutral: 220
+};
+
+const audioState = {
+  isUnlocked: false,
+  isUnlocking: false
+};
+
+function resolveAudioSourceForMaterial(materialKey, defaultSrc) {
+  void materialKey;
+  try {
+    return new URL(defaultSrc, window.location.href).href;
+  } catch {
+    return defaultSrc;
+  }
+}
+
+const sensationControls = {
+  hardness: 0.5,
+  roughness: 0.5,
+  viscosity: 0.5,
+  elasticity: 0.5,
+  density: 0.5,
+  reverb: 0.5,
+  delayMs: DELAY_TIME_MS_LIMITS.neutral,
+  temperature: 0.5,
+  humidity: 0.5
+};
+
+const ADSR_LIMITS = {
+  attack: [0.005, 0.2],
+  decay: [0.015, 0.35],
+  sustain: [0.05, 1],
+  release: [0.01, 0.35]
+};
+
+const adsrEditorState = {
+  overrideEnabled: false,
+  values: {
+    attack: 0.03,
+    decay: 0.09,
+    sustain: 0.4,
+    release: 0.05
+  },
+  activeHandle: null,
+  geometry: null
+};
+
+const freeCursorProfile = {
+  lerpFactor: 1,
+  speedScale: 1,
+  damping: 0.7,
+  inertiaCarry: 0,
+  springBack: 0,
+  overshootAmount: 0,
+  jitterAmplitude: 0,
+  jitterFrequency: 0,
+  jitterMode: "none",
+  stickSlipThreshold: 0,
+  stickSlipRelease: 0,
+  recoilPixels: 0,
+  gridSnapSize: 0,
+  gridAxis: "none",
+  gridHoldMs: 0
+};
+
+const pointerState = {
+  x: window.innerWidth * 0.5,
+  y: window.innerHeight * 0.58,
+  activeProfileKey: "__free__"
+};
+
+const materialProfiles = {
+  wood: {
+    label: "Wood",
+    description: "Warm drag with directional grain resistance.",
+    color: 0xb98352,
+    accent: 0xd9ac82,
+    emissive: 0x2e1809,
+    audioSrc: "sound effect/wood.mp3",
+    filterType: "lowpass",
+    filterBaseHz: 3200,
+    filterMaxHz: 4600,
+    playbackRateRange: [0.68, 1.12],
+    sampleShape: "block",
+    sampleScale: [0.22, 0.12, 0.22],
+    visual: { roughness: 0.76, metalness: 0.03, clearcoat: 0.06, transmission: 0.02, thickness: 0.22 },
+    cursor: {
+      lerpFactor: 0.32,
+      speedScale: 0.9,
+      damping: 0.92,
+      inertiaCarry: 0.05,
+      springBack: 0,
+      overshootAmount: 0,
+      jitterAmplitude: 0.25,
+      jitterFrequency: 8,
+      jitterMode: "micro",
+      stickSlipThreshold: 0,
+      stickSlipRelease: 0,
+      recoilPixels: 0,
+      gridSnapSize: 12,
+      gridAxis: "y",
+      gridHoldMs: 18
+    },
+    audioMotion: {
+      speedReference: 620,
+      transientAccelThreshold: 6800,
+      transientGainBoost: 0.08,
+      transientRateBoost: 0.028,
+      detuneRangeCents: 6,
+      gateDuckAmount: 0.12
+    }
+  },
+  paper: {
+    label: "Paper",
+    description: "Light, dry, and quick with barely any delay.",
+    color: 0xf1e2bc,
+    accent: 0xf9f2de,
+    emissive: 0x2b2314,
+    audioSrc: "sound effect/paper.mp3",
+    filterType: "lowpass",
+    filterBaseHz: 8000,
+    filterMaxHz: 14500,
+    playbackRateRange: [0.74, 1.28],
+    sampleShape: "sheet",
+    sampleScale: [0.24, 0.03, 0.18],
+    visual: { roughness: 0.92, metalness: 0, clearcoat: 0, transmission: 0.04, thickness: 0.1 },
+    cursor: {
+      lerpFactor: 0.8,
+      speedScale: 1,
+      damping: 0.88,
+      inertiaCarry: 0.1,
+      springBack: 0,
+      overshootAmount: 0,
+      jitterAmplitude: 0.18,
+      jitterFrequency: 18,
+      jitterMode: "white",
+      stickSlipThreshold: 0,
+      stickSlipRelease: 0,
+      recoilPixels: 0,
+      gridSnapSize: 0,
+      gridAxis: "none",
+      gridHoldMs: 0
+    },
+    audioMotion: {
+      speedReference: 710,
+      transientAccelThreshold: 7600,
+      transientGainBoost: 0.09,
+      transientRateBoost: 0.032,
+      detuneRangeCents: 6,
+      gateDuckAmount: 0.08
+    }
+  },
+  fabric: {
+    label: "Fabric",
+    description: "A soft weave with regular grid-like drag.",
+    color: 0x6f94b8,
+    accent: 0x96badc,
+    emissive: 0x132131,
+    audioSrc: "sound effect/fabric.mp3",
+    filterType: "lowpass",
+    filterBaseHz: 1500,
+    filterMaxHz: 2200,
+    playbackRateRange: [0.66, 1.04],
+    sampleShape: "cushion",
+    sampleScale: [0.24, 0.11, 0.24],
+    visual: { roughness: 0.96, metalness: 0, clearcoat: 0, transmission: 0, thickness: 0.12 },
+    cursor: {
+      lerpFactor: 0.28,
+      speedScale: 0.78,
+      damping: 0.94,
+      inertiaCarry: 0,
+      springBack: 0,
+      overshootAmount: 0,
+      jitterAmplitude: 0,
+      jitterFrequency: 0,
+      jitterMode: "none",
+      stickSlipThreshold: 0,
+      stickSlipRelease: 0,
+      recoilPixels: 0,
+      gridSnapSize: 5,
+      gridAxis: "both",
+      gridHoldMs: 22
+    },
+    audioMotion: {
+      speedReference: 420,
+      transientAccelThreshold: 6200,
+      transientGainBoost: 0.07,
+      transientRateBoost: 0.018,
+      detuneRangeCents: 0,
+      gateDuckAmount: 0.34
+    }
+  },
+  rubber: {
+    label: "Rubber",
+    description: "Heavy drag with elastic catch-up and muted highs.",
+    color: 0x2d343f,
+    accent: 0x434c59,
+    emissive: 0x090b10,
+    audioSrc: "sound effect/rubber.mp3",
+    filterType: "lowpass",
+    filterBaseHz: 1500,
+    filterMaxHz: 2050,
+    playbackRateRange: [0.6, 1.0],
+    sampleShape: "ring",
+    sampleScale: [0.16, 0.16, 0.16],
+    visual: { roughness: 0.88, metalness: 0.02, clearcoat: 0.03, transmission: 0, thickness: 0.12 },
+    cursor: {
+      lerpFactor: 0.16,
+      speedScale: 0.72,
+      damping: 0.82,
+      inertiaCarry: 0.18,
+      springBack: 18,
+      overshootAmount: 0.08,
+      jitterAmplitude: 0,
+      jitterFrequency: 0,
+      jitterMode: "none",
+      stickSlipThreshold: 0,
+      stickSlipRelease: 0,
+      recoilPixels: 0,
+      gridSnapSize: 0,
+      gridAxis: "none",
+      gridHoldMs: 0
+    },
+    audioMotion: {
+      speedReference: 380,
+      transientAccelThreshold: 4800,
+      transientGainBoost: 0.1,
+      transientRateBoost: 0.04,
+      detuneRangeCents: 0,
+      gateDuckAmount: 0.1
+    }
+  },
+  sand: {
+    label: "Sand",
+    description: "Slow, gritty, and trapped in tiny granular offsets.",
+    color: 0xd4bd8d,
+    accent: 0xe7d9b5,
+    emissive: 0x2f2619,
+    audioSrc: "sound effect/sand.mp3",
+    filterType: "lowpass",
+    filterBaseHz: 8600,
+    filterMaxHz: 14500,
+    playbackRateRange: [0.72, 1.18],
+    sampleShape: "sphere",
+    sampleScale: [0.17, 0.17, 0.17],
+    visual: { roughness: 0.98, metalness: 0, clearcoat: 0, transmission: 0, thickness: 0.12 },
+    cursor: {
+      lerpFactor: 0.22,
+      speedScale: 0.62,
+      damping: 0.98,
+      inertiaCarry: 0,
+      springBack: 0,
+      overshootAmount: 0,
+      jitterAmplitude: 1.5,
+      jitterFrequency: 12,
+      jitterMode: "brownian",
+      stickSlipThreshold: 0,
+      stickSlipRelease: 0,
+      recoilPixels: 0,
+      gridSnapSize: 0,
+      gridAxis: "none",
+      gridHoldMs: 0
+    },
+    audioMotion: {
+      speedReference: 360,
+      transientAccelThreshold: 5200,
+      transientGainBoost: 0.08,
+      transientRateBoost: 0.018,
+      detuneRangeCents: 16,
+      gateDuckAmount: 0.1
+    }
+  },
+  metal: {
+    label: "Metal",
+    description: "Large-mass motion with smooth polished inertia.",
+    color: 0xb8c2cf,
+    accent: 0xd8dfe8,
+    emissive: 0x161b24,
+    audioSrc: "sound effect/metal.mp3",
+    filterType: "lowpass",
+    filterBaseHz: 9500,
+    filterMaxHz: 13200,
+    playbackRateRange: [0.78, 1.3],
+    sampleShape: "cylinder",
+    sampleScale: [0.16, 0.16, 0.16],
+    visual: { roughness: 0.2, metalness: 0.94, clearcoat: 0.1, transmission: 0, thickness: 0.12 },
+    cursor: {
+      lerpFactor: 0.12,
+      speedScale: 0.8,
+      damping: 0.9,
+      inertiaCarry: 0.9,
+      springBack: 0,
+      overshootAmount: 0,
+      jitterAmplitude: 0,
+      jitterFrequency: 0,
+      jitterMode: "none",
+      stickSlipThreshold: 0,
+      stickSlipRelease: 0,
+      recoilPixels: 0,
+      gridSnapSize: 0,
+      gridAxis: "none",
+      gridHoldMs: 0
+    },
+    audioMotion: {
+      speedReference: 560,
+      transientAccelThreshold: 7600,
+      transientGainBoost: 0.06,
+      transientRateBoost: 0.022,
+      detuneRangeCents: 0,
+      gateDuckAmount: 0.06
+    }
+  },
+  glass: {
+    label: "Wet Glass",
+    description: "Sticky slip, sudden release, and a faint recoil pull.",
+    color: 0xb7ebff,
+    accent: 0xe1f8ff,
+    emissive: 0x102028,
+    audioSrc: "sound effect/glass.mp3",
+    filterType: "lowpass",
+    filterBaseHz: 10800,
+    filterMaxHz: 15000,
+    playbackRateRange: [0.84, 1.32],
+    sampleShape: "octahedron",
+    sampleScale: [0.18, 0.18, 0.18],
+    visual: { roughness: 0.06, metalness: 0, clearcoat: 0.34, transmission: 0.92, thickness: 0.34 },
+    cursor: {
+      lerpFactor: 0.08,
+      speedScale: 0.58,
+      damping: 0.96,
+      inertiaCarry: 0,
+      springBack: 0,
+      overshootAmount: 0,
+      jitterAmplitude: 1.4,
+      jitterFrequency: 7,
+      jitterMode: "stutter",
+      stickSlipThreshold: 28,
+      stickSlipRelease: 0.82,
+      recoilPixels: 4,
+      gridSnapSize: 0,
+      gridAxis: "none",
+      gridHoldMs: 0
+    },
+    audioMotion: {
+      speedReference: 520,
+      transientAccelThreshold: 2800,
+      transientGainBoost: 0.22,
+      transientRateBoost: 0.09,
+      detuneRangeCents: 0,
+      gateDuckAmount: 0.04
+    }
+  },
+  ceramic: {
+    label: "Ceramic",
+    description: "Dry drag with powdery micro-jitter and no glide.",
+    color: 0xf2eee5,
+    accent: 0xffffff,
+    emissive: 0x221d17,
+    audioSrc: "sound effect/ceramic.mp3",
+    filterType: "lowpass",
+    filterBaseHz: 7400,
+    filterMaxHz: 11200,
+    playbackRateRange: [0.72, 1.22],
+    sampleShape: "puck",
+    sampleScale: [0.18, 0.12, 0.18],
+    visual: { roughness: 0.28, metalness: 0.02, clearcoat: 0.2, transmission: 0, thickness: 0.16 },
+    cursor: {
+      lerpFactor: 0.36,
+      speedScale: 0.84,
+      damping: 0.95,
+      inertiaCarry: 0,
+      springBack: 0,
+      overshootAmount: 0,
+      jitterAmplitude: 0.45,
+      jitterFrequency: 34,
+      jitterMode: "micro",
+      stickSlipThreshold: 0,
+      stickSlipRelease: 0,
+      recoilPixels: 0,
+      gridSnapSize: 0,
+      gridAxis: "none",
+      gridHoldMs: 0
+    },
+    audioMotion: {
+      speedReference: 500,
+      transientAccelThreshold: 5600,
+      transientGainBoost: 0.08,
+      transientRateBoost: 0.022,
+      detuneRangeCents: 12,
+      gateDuckAmount: 0.08
+    }
+  },
+  ice: {
+    label: "Ice",
+    description: "Fast launch, long glide, and almost no frictional shake.",
+    color: 0xd7f5ff,
+    accent: 0xf4fdff,
+    emissive: 0x0f1c23,
+    audioSrc: "sound effect/ice.mp3",
+    filterType: "lowpass",
+    filterBaseHz: 9800,
+    filterMaxHz: 14500,
+    playbackRateRange: [0.86, 1.3],
+    sampleShape: "icosahedron",
+    sampleScale: [0.18, 0.18, 0.18],
+    visual: { roughness: 0.12, metalness: 0, clearcoat: 0.38, transmission: 0.88, thickness: 0.3 },
+    cursor: {
+      lerpFactor: 0.05,
+      speedScale: 1.12,
+      damping: 0.995,
+      inertiaCarry: 0.985,
+      springBack: 0,
+      overshootAmount: 0,
+      jitterAmplitude: 0,
+      jitterFrequency: 0,
+      jitterMode: "none",
+      stickSlipThreshold: 0,
+      stickSlipRelease: 0,
+      recoilPixels: 0,
+      gridSnapSize: 0,
+      gridAxis: "none",
+      gridHoldMs: 0
+    },
+    audioMotion: {
+      speedReference: 700,
+      transientAccelThreshold: 8800,
+      transientGainBoost: 0.05,
+      transientRateBoost: 0.018,
+      detuneRangeCents: 0,
+      gateDuckAmount: 0.04
+    }
+  }
+};
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function lerp(start, end, alpha) {
+  return start + (end - start) * alpha;
+}
+
+function randomRange(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function makeCanvasTexture(size, drawFn, isColor = true) {
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  drawFn(ctx, size);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.colorSpace = isColor ? THREE.SRGBColorSpace : (THREE.NoColorSpace || THREE.LinearSRGBColorSpace);
+  texture.anisotropy = renderer ? renderer.capabilities.getMaxAnisotropy() : 1;
+  return texture;
+}
+
+function createNoiseTexture(size, low = 80, high = 180) {
+  return makeCanvasTexture(size, (ctx, s) => {
+    const img = ctx.createImageData(s, s);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.floor(randomRange(low, high));
+      img.data[i] = v;
+      img.data[i + 1] = v;
+      img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }, false);
+}
+
+function getSceneTextureSet() {
+  if (sceneTextureSet) return sceneTextureSet;
+
+  const woodMap = makeCanvasTexture(1024, (ctx, s) => {
+    const grad = ctx.createLinearGradient(0, 0, s, 0);
+    grad.addColorStop(0, "#7a5a42");
+    grad.addColorStop(0.45, "#8d684b");
+    grad.addColorStop(1, "#6a4f3b");
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 340; i += 1) {
+      ctx.strokeStyle = `rgba(30, 20, 12, ${randomRange(0.05, 0.16).toFixed(3)})`;
+      ctx.lineWidth = randomRange(1, 3.5);
+      const y = randomRange(0, s);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.bezierCurveTo(s * 0.28, y + randomRange(-16, 16), s * 0.7, y + randomRange(-20, 20), s, y + randomRange(-12, 12));
+      ctx.stroke();
+    }
+  });
+  woodMap.repeat.set(8, 6);
+
+  const plasterMap = makeCanvasTexture(768, (ctx, s) => {
+    ctx.fillStyle = "#c9b8a3";
+    ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 18000; i += 1) {
+      const v = Math.floor(randomRange(150, 220));
+      const a = randomRange(0.04, 0.11);
+      ctx.fillStyle = `rgba(${v}, ${v - 8}, ${v - 18}, ${a.toFixed(3)})`;
+      ctx.fillRect(randomRange(0, s), randomRange(0, s), 1, 1);
+    }
+  });
+  plasterMap.repeat.set(5, 3);
+
+  const fabricMap = makeCanvasTexture(512, (ctx, s) => {
+    ctx.fillStyle = "#d7c8b3";
+    ctx.fillRect(0, 0, s, s);
+    ctx.strokeStyle = "rgba(120, 105, 88, 0.12)";
+    ctx.lineWidth = 1;
+    for (let i = 0; i < s; i += 6) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, s);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(s, i);
+      ctx.stroke();
+    }
+  });
+  fabricMap.repeat.set(7, 4);
+
+  const rugMap = makeCanvasTexture(768, (ctx, s) => {
+    ctx.fillStyle = "#a48d75";
+    ctx.fillRect(0, 0, s, s);
+    for (let i = 0; i < 14000; i += 1) {
+      const v = Math.floor(randomRange(110, 170));
+      const a = randomRange(0.04, 0.1);
+      ctx.fillStyle = `rgba(${v + 8}, ${v}, ${v - 10}, ${a.toFixed(3)})`;
+      ctx.fillRect(randomRange(0, s), randomRange(0, s), 1.2, 1.2);
+    }
+  });
+  rugMap.repeat.set(3, 3);
+
+  const fineNoise = createNoiseTexture(512, 90, 170);
+  fineNoise.repeat.set(6, 6);
+
+  const coarseNoise = createNoiseTexture(512, 70, 200);
+  coarseNoise.repeat.set(3, 3);
+
+  sceneTextureSet = {
+    woodMap,
+    plasterMap,
+    fabricMap,
+    rugMap,
+    fineNoise,
+    coarseNoise
+  };
+  return sceneTextureSet;
+}
+
+function applySoftWaves(geometry, amplitude = 0.012) {
+  // Cheap "fabric sag" so rugs/cushions don't look perfectly flat.
+  const pos = geometry.attributes.position;
+  if (!pos) return;
+  for (let i = 0; i < pos.count; i += 1) {
+    const x = pos.getX(i);
+    const z = pos.getZ(i);
+    const wave = Math.sin(x * 1.3) * Math.cos(z * 1.1) * 0.6 + Math.sin((x + z) * 0.7) * 0.4;
+    pos.setY(i, pos.getY(i) + wave * amplitude);
+  }
+  pos.needsUpdate = true;
+  geometry.computeVertexNormals();
+}
+
+function makeSoftCapsule(w, h, d) {
+  // Capsule is along Y by default; rotate so the long axis runs along X.
+  const g = new THREE.CapsuleGeometry(0.5, 1, 10, 20);
+  g.rotateZ(Math.PI / 2);
+  g.scale(w / 2, h / 2, d / 2);
+  applySoftWaves(g, 0.006);
+  return g;
+}
+
+function makeRoundedBox(w, h, d, r = 0.12, smooth = 6) {
+  // Rounded-rectangle footprint extruded into height, then rotated so height is Y.
+  const radius = clamp(r, 0.02, Math.min(w, d) * 0.5 - 0.02);
+  const hw = w * 0.5;
+  const hd = d * 0.5;
+  const shape = new THREE.Shape();
+  shape.moveTo(-hw + radius, -hd);
+  shape.lineTo(hw - radius, -hd);
+  shape.quadraticCurveTo(hw, -hd, hw, -hd + radius);
+  shape.lineTo(hw, hd - radius);
+  shape.quadraticCurveTo(hw, hd, hw - radius, hd);
+  shape.lineTo(-hw + radius, hd);
+  shape.quadraticCurveTo(-hw, hd, -hw, hd - radius);
+  shape.lineTo(-hw, -hd + radius);
+  shape.quadraticCurveTo(-hw, -hd, -hw + radius, -hd);
+
+  const g = new THREE.ExtrudeGeometry(shape, {
+    depth: h,
+    bevelEnabled: true,
+    bevelSegments: smooth,
+    steps: 1,
+    bevelSize: radius,
+    bevelThickness: radius,
+    curveSegments: Math.max(8, smooth * 2)
+  });
+  g.rotateX(-Math.PI / 2);
+  g.translate(0, -h / 2, 0);
+  applySoftWaves(g, 0.004);
+  return g;
+}
+
+function frameIndependentAlpha(factor, dt) {
+  const safeFactor = clamp(factor, 0, 0.9999);
+  return 1 - Math.pow(1 - safeFactor, dt * 60);
+}
+
+function frameIndependentRetention(value, dt) {
+  return Math.pow(clamp(value, 0, 0.9999), dt * 60);
+}
+
+function toCentered(value) {
+  return clamp(value, 0, 1) * 2 - 1;
+}
+
+function getSensationInfluence() {
+  return {
+    hardness: toCentered(sensationControls.hardness),
+    roughness: toCentered(sensationControls.roughness),
+    viscosity: toCentered(sensationControls.viscosity),
+    elasticity: toCentered(sensationControls.elasticity),
+    density: toCentered(sensationControls.density),
+    temperature: toCentered(sensationControls.temperature),
+    humidity: toCentered(sensationControls.humidity)
+  };
+}
+
+function formatPercent(value) {
+  return `${Math.round(clamp(value, 0, 1) * 100)}%`;
+}
+
+function updateSensationReadouts() {
+  hardnessValueEl.textContent = formatPercent(sensationControls.hardness);
+  roughnessValueEl.textContent = formatPercent(sensationControls.roughness);
+  viscosityValueEl.textContent = formatPercent(sensationControls.viscosity);
+  elasticityValueEl.textContent = formatPercent(sensationControls.elasticity);
+  densityValueEl.textContent = formatPercent(sensationControls.density);
+  const wetPercent = Math.round(clamp(sensationControls.reverb, 0, 1) * 100);
+  const dryPercent = 100 - wetPercent;
+  reverbValueEl.textContent = `D${dryPercent} / W${wetPercent}`;
+  delayValueEl.textContent = `${Math.round(clamp(sensationControls.delayMs, DELAY_TIME_MS_LIMITS.min, DELAY_TIME_MS_LIMITS.max))}ms`;
+  temperatureValueEl.textContent = `${Math.round(12 + sensationControls.temperature * 20)}°C`;
+  humidityValueEl.textContent = `${Math.round(clamp(sensationControls.humidity, 0, 1) * 100)}%`;
+}
+
+function buildCoordinatedCursorProfile(baseProfile) {
+  const profile = { ...baseProfile };
+  const influence = getSensationInfluence();
+
+  profile.lerpFactor = clamp(
+    profile.lerpFactor + influence.hardness * 0.18 - influence.viscosity * 0.28 - influence.density * 0.14,
+    0.03,
+    1
+  );
+  profile.speedScale = clamp(
+    profile.speedScale + influence.hardness * 0.09 - influence.viscosity * 0.2 - influence.density * 0.15,
+    0.45,
+    1.28
+  );
+  profile.damping = clamp(
+    profile.damping + influence.hardness * 0.11 + influence.viscosity * 0.08 - influence.elasticity * 0.06,
+    0.72,
+    0.998
+  );
+  profile.inertiaCarry = clamp(
+    profile.inertiaCarry + influence.density * 0.36 + influence.viscosity * 0.2 - influence.hardness * 0.42,
+    0,
+    0.995
+  );
+  profile.springBack = clamp(
+    profile.springBack + influence.elasticity * 18 - influence.hardness * 5,
+    0,
+    28
+  );
+  profile.overshootAmount = clamp(
+    profile.overshootAmount + influence.elasticity * 0.2 - influence.hardness * 0.05,
+    0,
+    0.36
+  );
+
+  profile.jitterAmplitude = clamp(profile.jitterAmplitude + influence.roughness * 1.25, 0, 2.6);
+  profile.jitterFrequency = clamp(profile.jitterFrequency + influence.roughness * 10, 0, 46);
+
+  if (sensationControls.roughness > 0.7) {
+    profile.jitterMode = "brownian";
+  } else if (sensationControls.roughness > 0.4 && profile.jitterMode === "none") {
+    profile.jitterMode = "micro";
+  } else if (sensationControls.roughness < 0.2) {
+    profile.jitterMode = "none";
+  }
+
+  profile.stickSlipThreshold = clamp(profile.stickSlipThreshold + influence.viscosity * 14, 0, 52);
+  profile.stickSlipRelease = clamp((profile.stickSlipRelease || 0.68) - influence.viscosity * 0.18, 0.3, 1.05);
+  profile.recoilPixels = clamp(profile.recoilPixels + influence.elasticity * 4.2, 0, 11);
+  profile.gridHoldMs = clamp(profile.gridHoldMs + influence.roughness * 10, 0, 48);
+  profile.damping = clamp(profile.damping + influence.humidity * 0.04 - influence.temperature * 0.03, 0.72, 0.998);
+  profile.jitterAmplitude = clamp(profile.jitterAmplitude + influence.humidity * 0.25 - influence.temperature * 0.1, 0, 2.8);
+
+  return profile;
+}
+
+function updateCursorVisualTuning() {
+  const influence = getSensationInfluence();
+  const baseRing = clamp(28 - influence.hardness * 4 + influence.viscosity * 3 + influence.density * 2, 20, 40);
+  const ringOver = clamp(baseRing + 6 + influence.elasticity * 2, 24, 48);
+  const ringHover = clamp(baseRing + 12 + influence.roughness * 3, 28, 56);
+  const ringDrag = clamp(baseRing - 4 + influence.elasticity * 1.5, 16, 34);
+  const ringBorder = clamp(1.5 + influence.roughness * 0.35 - influence.hardness * 0.2, 1, 2.8);
+  const ringHoverBorder = clamp(ringBorder + 0.35, 1.2, 3.2);
+
+  const glowSize = clamp(46 - influence.hardness * 10 + influence.roughness * 8 + influence.viscosity * 6, 30, 72);
+  const glowOpacity = clamp(0.65 + influence.roughness * 0.12 + influence.viscosity * 0.08 - influence.hardness * 0.08, 0.3, 0.92);
+  const glowBlur = clamp(4 - influence.hardness * 1.2 + influence.roughness * 1.8 + influence.elasticity * 0.8, 1.5, 10);
+  const dotSize = clamp(7 + influence.roughness * 1.1 - influence.hardness * 0.8, 5, 11);
+  const dotDragSize = clamp(dotSize + 1.6 + influence.elasticity * 0.8, 6.5, 14);
+
+  cursorEl.style.setProperty("--cursor-ring-size", `${baseRing.toFixed(2)}px`);
+  cursorEl.style.setProperty("--cursor-ring-over-size", `${ringOver.toFixed(2)}px`);
+  cursorEl.style.setProperty("--cursor-ring-hover-size", `${ringHover.toFixed(2)}px`);
+  cursorEl.style.setProperty("--cursor-ring-drag-size", `${ringDrag.toFixed(2)}px`);
+  cursorEl.style.setProperty("--cursor-ring-border", `${ringBorder.toFixed(2)}px`);
+  cursorEl.style.setProperty("--cursor-ring-hover-border", `${ringHoverBorder.toFixed(2)}px`);
+  cursorEl.style.setProperty("--cursor-glow-size", `${glowSize.toFixed(2)}px`);
+  cursorEl.style.setProperty("--cursor-glow-opacity", glowOpacity.toFixed(3));
+  cursorEl.style.setProperty("--cursor-glow-blur", `${glowBlur.toFixed(2)}px`);
+  cursorEl.style.setProperty("--cursor-dot-size", `${dotSize.toFixed(2)}px`);
+  cursorEl.style.setProperty("--cursor-dot-drag-size", `${dotDragSize.toFixed(2)}px`);
+}
+
+function refreshCursorProfileWithSensation(surfaceActive = pointerState.activeProfileKey !== "__free__") {
+  if (!materialCursor) return;
+  const baseProfile = surfaceActive ? materialProfiles[currentMaterial].cursor : freeCursorProfile;
+  materialCursor.setMaterial(buildCoordinatedCursorProfile(baseProfile));
+}
+
+function applySensationControls() {
+  updateSensationReadouts();
+  updateCursorVisualTuning();
+  refreshCursorProfileWithSensation(interactionState.surfaceActive);
+}
+
+function bindSensationControls() {
+  const controls = [
+    ["hardness", hardnessInput],
+    ["roughness", roughnessInput],
+    ["viscosity", viscosityInput],
+    ["elasticity", elasticityInput],
+    ["density", densityInput],
+    ["reverb", reverbInput],
+    ["temperature", temperatureInput],
+    ["humidity", humidityInput]
+  ];
+
+  controls.forEach(([key, inputEl]) => {
+    if (!inputEl) return;
+
+    inputEl.addEventListener("input", () => {
+      sensationControls[key] = clamp(Number(inputEl.value) / 100, 0, 1);
+      applySensationControls();
+    });
+  });
+
+  if (delayInput) {
+    delayInput.addEventListener("input", () => {
+      sensationControls.delayMs = clamp(Number(delayInput.value), DELAY_TIME_MS_LIMITS.min, DELAY_TIME_MS_LIMITS.max);
+      applySensationControls();
+    });
+  }
+
+  if (tuningResetButton) {
+    tuningResetButton.addEventListener("click", () => {
+      controls.forEach(([key, inputEl]) => {
+        sensationControls[key] = 0.5;
+        if (inputEl) {
+          inputEl.value = "50";
+        }
+      });
+
+      sensationControls.delayMs = DELAY_TIME_MS_LIMITS.neutral;
+      if (delayInput) {
+        delayInput.value = String(DELAY_TIME_MS_LIMITS.neutral);
+      }
+
+      resetAdsrOverride();
+
+      applySensationControls();
+      updateAudioMonitor(materialCursor ? materialCursor.getState() : null);
+    });
+  }
+
+  applySensationControls();
+}
+
+function bindPanelMinimizeToggles() {
+  const toggleButtons = Array.from(document.querySelectorAll(".panel-minimize-btn"));
+
+  toggleButtons.forEach((buttonEl) => {
+    const panelId = buttonEl.dataset.panelTarget;
+    const panelEl = panelId ? document.getElementById(panelId) : null;
+    if (!panelEl) return;
+
+    buttonEl.addEventListener("click", () => {
+      const minimized = panelEl.classList.toggle("is-minimized");
+      buttonEl.textContent = minimized ? "+" : "−";
+      buttonEl.setAttribute("aria-expanded", String(!minimized));
+    });
+  });
+}
+
+function clampAdsrValue(key, value) {
+  const [minValue, maxValue] = ADSR_LIMITS[key];
+  return clamp(value, minValue, maxValue);
+}
+
+function getBaseAdsrFromInfluence(influence) {
+  return {
+    attack: clamp(0.03 - influence.hardness * 0.016 + influence.viscosity * 0.022 + influence.density * 0.02, ADSR_LIMITS.attack[0], ADSR_LIMITS.attack[1]),
+    decay: clamp(0.09 - influence.hardness * 0.035 + influence.roughness * 0.045 + influence.density * 0.03, ADSR_LIMITS.decay[0], ADSR_LIMITS.decay[1]),
+    sustain: clamp(0.4 - influence.hardness * 0.2 + influence.roughness * 0.28 + influence.viscosity * 0.2 + influence.density * 0.16, ADSR_LIMITS.sustain[0], ADSR_LIMITS.sustain[1]),
+    release: clamp(0.05 - influence.hardness * 0.02 + influence.viscosity * 0.085 + influence.density * 0.065 + influence.elasticity * 0.02, ADSR_LIMITS.release[0], ADSR_LIMITS.release[1])
+  };
+}
+
+function getEffectiveAdsrFromInfluence(influence) {
+  const base = getBaseAdsrFromInfluence(influence);
+  if (!adsrEditorState.overrideEnabled) {
+    return base;
+  }
+
+  return {
+    attack: clampAdsrValue("attack", adsrEditorState.values.attack),
+    decay: clampAdsrValue("decay", adsrEditorState.values.decay),
+    sustain: clampAdsrValue("sustain", adsrEditorState.values.sustain),
+    release: clampAdsrValue("release", adsrEditorState.values.release)
+  };
+}
+
+function setAdsrOverridePartial(partial) {
+  adsrEditorState.overrideEnabled = true;
+  Object.entries(partial).forEach(([key, value]) => {
+    if (!(key in adsrEditorState.values)) return;
+    adsrEditorState.values[key] = clampAdsrValue(key, value);
+  });
+}
+
+function resetAdsrOverride() {
+  adsrEditorState.overrideEnabled = false;
+}
+
+function buildMonitorModel(cursorState) {
+  const influence = getSensationInfluence();
+  const profile = materialProfiles[currentMaterial];
+  const motion = profile.audioMotion;
+
+  const speedNorm = cursorState
+    ? clamp(cursorState.virtualSpeed / Math.max(240, motion.speedReference), 0, 1)
+    : 0;
+
+  const adsr = getEffectiveAdsrFromInfluence(influence);
+
+  const lowDb = clamp(-1 - influence.hardness * 5 + influence.viscosity * 7 + influence.density * 8 - influence.roughness * 1.5 + influence.temperature * 5.2, -12, 12);
+  const midDb = clamp(influence.elasticity * 4 + influence.roughness * 2 - influence.viscosity * 1.2 + speedNorm * 1.2, -12, 12);
+  const highDb = clamp(2 + influence.hardness * 8 + influence.roughness * 3.5 - influence.viscosity * 7 - influence.density * 6 - influence.temperature * 6.4, -12, 12);
+
+  return {
+    adsr,
+    eq: { lowDb, midDb, highDb }
+  };
+}
+
+function fitMonitorCanvas(canvasEl) {
+  if (!canvasEl) return null;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const cssWidth = Math.max(120, canvasEl.clientWidth);
+  const cssHeight = Math.max(50, canvasEl.clientHeight);
+  const width = Math.round(cssWidth * dpr);
+  const height = Math.round(cssHeight * dpr);
+
+  if (canvasEl.width !== width || canvasEl.height !== height) {
+    canvasEl.width = width;
+    canvasEl.height = height;
+  }
+
+  const ctx = canvasEl.getContext("2d");
+  if (!ctx) return null;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, width: cssWidth, height: cssHeight };
+}
+
+function drawMonitorGrid(ctx, width, height) {
+  ctx.clearRect(0, 0, width, height);
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = "rgba(108, 95, 80, 0.16)";
+
+  for (let i = 1; i <= 4; i += 1) {
+    const x = (width / 5) * i;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+
+  for (let i = 1; i <= 3; i += 1) {
+    const y = (height / 4) * i;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+}
+
+function drawAdsrMonitor(adsr) {
+  const fit = fitMonitorCanvas(adsrMonitorCanvas);
+  if (!fit) return;
+  const { ctx, width, height } = fit;
+
+  drawMonitorGrid(ctx, width, height);
+
+  const paddingX = 10;
+  const paddingY = 8;
+  const usableWidth = width - paddingX * 2;
+  const baselineY = height - paddingY;
+  const peakY = paddingY + 2;
+  const sustainY = baselineY - (baselineY - peakY) * adsr.sustain;
+
+  const total = adsr.attack + adsr.decay + adsr.release + 0.09;
+  const attackX = paddingX + usableWidth * (adsr.attack / total);
+  const decayX = attackX + usableWidth * (adsr.decay / total);
+  const sustainX = decayX + usableWidth * (0.09 / total);
+  const releaseX = paddingX + usableWidth;
+
+  ctx.beginPath();
+  ctx.moveTo(paddingX, baselineY);
+  ctx.lineTo(attackX, peakY);
+  ctx.lineTo(decayX, sustainY);
+  ctx.lineTo(sustainX, sustainY);
+  ctx.lineTo(releaseX, baselineY);
+  ctx.strokeStyle = "rgba(179, 116, 56, 0.95)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.lineTo(paddingX, baselineY);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(183, 118, 57, 0.16)";
+  ctx.fill();
+
+  const releaseHandleX = releaseX - clamp(adsr.release / ADSR_LIMITS.release[1], 0, 1) * usableWidth * 0.42;
+  const releaseHandleY = baselineY - 10;
+  const handles = [
+    { key: "attack", x: attackX, y: peakY },
+    { key: "decay", x: decayX, y: sustainY },
+    { key: "sustain", x: sustainX, y: sustainY },
+    { key: "release", x: releaseHandleX, y: releaseHandleY }
+  ];
+
+  handles.forEach((handle) => {
+    ctx.beginPath();
+    ctx.arc(handle.x, handle.y, 4.2, 0, TAU);
+    ctx.fillStyle = adsrEditorState.activeHandle === handle.key ? "rgba(151, 88, 28, 0.95)" : "rgba(171, 106, 46, 0.9)";
+    ctx.fill();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.86)";
+    ctx.stroke();
+  });
+
+  adsrEditorState.geometry = {
+    width,
+    height,
+    paddingX,
+    paddingY,
+    usableWidth,
+    baselineY,
+    peakY,
+    sustainY,
+    releaseX,
+    handles
+  };
+
+  if (monitorAttackEl) monitorAttackEl.textContent = `${adsr.attack.toFixed(3)}s`;
+  if (monitorDecayEl) monitorDecayEl.textContent = `${adsr.decay.toFixed(3)}s`;
+  if (monitorSustainEl) monitorSustainEl.textContent = adsr.sustain.toFixed(2);
+  if (monitorReleaseEl) monitorReleaseEl.textContent = `${adsr.release.toFixed(3)}s`;
+}
+
+function drawEqMonitor(eq) {
+  const fit = fitMonitorCanvas(eqMonitorCanvas);
+  if (!fit) return;
+  const { ctx, width, height } = fit;
+
+  drawMonitorGrid(ctx, width, height);
+
+  const toY = (db) => {
+    const normalized = clamp((db + 12) / 24, 0, 1);
+    return (height - 8) - normalized * (height - 16);
+  };
+
+  const p1 = { x: width * 0.14, y: toY(eq.lowDb) };
+  const p2 = { x: width * 0.5, y: toY(eq.midDb) };
+  const p3 = { x: width * 0.86, y: toY(eq.highDb) };
+  const baseY = height - 8;
+
+  ctx.beginPath();
+  ctx.moveTo(p1.x, p1.y);
+  ctx.quadraticCurveTo(width * 0.32, (p1.y + p2.y) * 0.5, p2.x, p2.y);
+  ctx.quadraticCurveTo(width * 0.68, (p2.y + p3.y) * 0.5, p3.x, p3.y);
+  ctx.strokeStyle = "rgba(79, 120, 187, 0.96)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.lineTo(p3.x, baseY);
+  ctx.lineTo(p1.x, baseY);
+  ctx.closePath();
+  ctx.fillStyle = "rgba(92, 135, 205, 0.15)";
+  ctx.fill();
+
+  [p1, p2, p3].forEach((point) => {
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 2.2, 0, TAU);
+    ctx.fillStyle = "rgba(59, 96, 156, 0.95)";
+    ctx.fill();
+  });
+}
+
+function updateAudioMonitor(cursorState = null) {
+  const model = buildMonitorModel(cursorState);
+  drawAdsrMonitor(model.adsr);
+  drawEqMonitor(model.eq);
+}
+
+function canvasPointFromPointer(event, canvasEl) {
+  const rect = canvasEl.getBoundingClientRect();
+  return {
+    x: event.clientX - rect.left,
+    y: event.clientY - rect.top
+  };
+}
+
+function updateAdsrFromDrag(handleKey, point) {
+  const geom = adsrEditorState.geometry;
+  if (!geom) return;
+
+  const xNorm = clamp((point.x - geom.paddingX) / geom.usableWidth, 0, 1);
+  const yNorm = clamp((geom.baselineY - point.y) / Math.max(1, geom.baselineY - geom.peakY), 0, 1);
+
+  if (handleKey === "attack") {
+    const attack = ADSR_LIMITS.attack[0] + xNorm * (ADSR_LIMITS.attack[1] - ADSR_LIMITS.attack[0]);
+    setAdsrOverridePartial({ attack });
+  } else if (handleKey === "decay") {
+    const decay = ADSR_LIMITS.decay[0] + xNorm * (ADSR_LIMITS.decay[1] - ADSR_LIMITS.decay[0]);
+    const sustain = ADSR_LIMITS.sustain[0] + yNorm * (ADSR_LIMITS.sustain[1] - ADSR_LIMITS.sustain[0]);
+    setAdsrOverridePartial({ decay, sustain });
+  } else if (handleKey === "sustain") {
+    const sustain = ADSR_LIMITS.sustain[0] + yNorm * (ADSR_LIMITS.sustain[1] - ADSR_LIMITS.sustain[0]);
+    setAdsrOverridePartial({ sustain });
+  } else if (handleKey === "release") {
+    const releaseNorm = clamp((geom.releaseX - point.x) / (geom.usableWidth * 0.42), 0, 1);
+    const release = ADSR_LIMITS.release[0] + releaseNorm * (ADSR_LIMITS.release[1] - ADSR_LIMITS.release[0]);
+    setAdsrOverridePartial({ release });
+  }
+
+  updateAudioMonitor(materialCursor ? materialCursor.getState() : null);
+}
+
+function bindAdsrCanvasEditor() {
+  if (!adsrMonitorCanvas) return;
+
+  adsrMonitorCanvas.addEventListener("pointerdown", (event) => {
+    if (!adsrEditorState.geometry) return;
+
+    const point = canvasPointFromPointer(event, adsrMonitorCanvas);
+    const hitHandle = adsrEditorState.geometry.handles.find((handle) => Math.hypot(handle.x - point.x, handle.y - point.y) <= 10);
+    if (!hitHandle) return;
+
+    adsrEditorState.activeHandle = hitHandle.key;
+    adsrMonitorCanvas.setPointerCapture(event.pointerId);
+    updateAdsrFromDrag(hitHandle.key, point);
+    event.preventDefault();
+  });
+
+  adsrMonitorCanvas.addEventListener("pointermove", (event) => {
+    if (!adsrEditorState.activeHandle) return;
+    const point = canvasPointFromPointer(event, adsrMonitorCanvas);
+    updateAdsrFromDrag(adsrEditorState.activeHandle, point);
+  });
+
+  const clearDragState = () => {
+    adsrEditorState.activeHandle = null;
+  };
+
+  adsrMonitorCanvas.addEventListener("pointerup", clearDragState);
+  adsrMonitorCanvas.addEventListener("pointercancel", clearDragState);
+  adsrMonitorCanvas.addEventListener("lostpointercapture", clearDragState);
+}
+
+function hexToCss(hex) {
+  return `#${hex.toString(16).padStart(6, "0")}`;
+}
+
+function hexToRgba(hex, alpha) {
+  const r = (hex >> 16) & 255;
+  const g = (hex >> 8) & 255;
+  const b = hex & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function setStatus(message) {
+  statusEl.textContent = message;
+}
+
+function updatePointerNdc(clientX, clientY) {
+  pointer.x = clientX / window.innerWidth * 2 - 1;
+  pointer.y = -(clientY / window.innerHeight) * 2 + 1;
+}
+
+function isUiInteractionTarget(target) {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(
+      "#tuningPanel, #monitorPanel, #hud, #status, #hint, #overlay, button, input, label"
+    )
+  );
+}
+
+function mapPlaybackRate(speedNorm, range) {
+  const speed = clamp(speedNorm, 0, 1);
+  const minRate = range[0];
+  const maxRate = range[1];
+
+  if (speed < 0.35) {
+    return lerp(minRate, 0.8, speed / 0.35);
+  }
+
+  if (speed < 0.75) {
+    return lerp(0.8, 1.0, (speed - 0.35) / 0.4);
+  }
+
+  return lerp(1.0, maxRate, (speed - 0.75) / 0.25);
+}
+
+class MaterialCursor {
+  constructor({ element, initialX, initialY }) {
+    this.element = element;
+    this.targetX = initialX;
+    this.targetY = initialY;
+    this.lastTargetX = initialX;
+    this.lastTargetY = initialY;
+    this.currentX = initialX;
+    this.currentY = initialY;
+    this.previousX = initialX;
+    this.previousY = initialY;
+    this.deltaX = 0;
+    this.deltaY = 0;
+    this.virtualDelta = 0;
+    this.virtualSpeed = 0;
+    this.virtualAcceleration = 0;
+    this.previousSpeed = 0;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.recoilVX = 0;
+    this.recoilVY = 0;
+    this.jitterX = 0;
+    this.jitterY = 0;
+    this.lastJitterX = 0;
+    this.lastJitterY = 0;
+    this.jitterEnergy = 0;
+    this.time = 0;
+    this.isStuck = false;
+    this.slipReleasedThisFrame = false;
+    this.gridGateThisFrame = false;
+    this.gridGateAmount = 0;
+    this.gridHoldTimer = 0;
+    this.brownianX = 0;
+    this.brownianY = 0;
+    this.params = {
+      lerpFactor: 0.4,
+      speedScale: 1,
+      damping: 0.9,
+      inertiaCarry: 0,
+      springBack: 0,
+      overshootAmount: 0,
+      jitterAmplitude: 0,
+      jitterFrequency: 0,
+      jitterMode: "none",
+      stickSlipThreshold: 0,
+      stickSlipRelease: 0,
+      recoilPixels: 0,
+      gridSnapSize: 0,
+      gridAxis: "none",
+      gridHoldMs: 0
+    };
+    this.render();
+  }
+
+  setTarget(x, y) {
+    this.targetX = x;
+    this.targetY = y;
+  }
+
+  setMaterial(cursorProfile) {
+    this.params = { ...this.params, ...cursorProfile };
+    this.gridHoldTimer = 0;
+    this.brownianX = 0;
+    this.brownianY = 0;
+  }
+
+  reset(x, y) {
+    this.targetX = x;
+    this.targetY = y;
+    this.lastTargetX = x;
+    this.lastTargetY = y;
+    this.currentX = x;
+    this.currentY = y;
+    this.previousX = x;
+    this.previousY = y;
+    this.deltaX = 0;
+    this.deltaY = 0;
+    this.virtualDelta = 0;
+    this.virtualSpeed = 0;
+    this.virtualAcceleration = 0;
+    this.previousSpeed = 0;
+    this.velocityX = 0;
+    this.velocityY = 0;
+    this.recoilVX = 0;
+    this.recoilVY = 0;
+    this.jitterX = 0;
+    this.jitterY = 0;
+    this.lastJitterX = 0;
+    this.lastJitterY = 0;
+    this.jitterEnergy = 0;
+    this.gridHoldTimer = 0;
+    this.brownianX = 0;
+    this.brownianY = 0;
+    this.isStuck = false;
+    this.slipReleasedThisFrame = false;
+    this.gridGateThisFrame = false;
+    this.gridGateAmount = 0;
+    this.render();
+  }
+
+  computeJitter(dt, gapLength, targetMotion) {
+    const p = this.params;
+    const amplitude = p.jitterAmplitude || 0;
+    const frequency = p.jitterFrequency || 0;
+    let jitterX = 0;
+    let jitterY = 0;
+    const settled = gapLength < 0.18 && targetMotion < 0.01 && Math.hypot(this.velocityX, this.velocityY) < 8;
+
+    if (amplitude <= 0 || frequency <= 0 || p.jitterMode === "none" || settled) {
+      this.lastJitterX = this.jitterX;
+      this.lastJitterY = this.jitterY;
+      this.jitterX = 0;
+      this.jitterY = 0;
+      this.jitterEnergy = 0;
+      return;
+    }
+
+    if (p.jitterMode === "white") {
+      jitterX = randomRange(-amplitude, amplitude);
+      jitterY = randomRange(-amplitude, amplitude);
+    } else if (p.jitterMode === "brownian") {
+      const stepScale = amplitude * frequency * dt * 0.18;
+      this.brownianX = clamp(this.brownianX + randomRange(-stepScale, stepScale), -amplitude * 1.4, amplitude * 1.4);
+      this.brownianY = clamp(this.brownianY + randomRange(-stepScale, stepScale), -amplitude * 1.4, amplitude * 1.4);
+      jitterX = this.brownianX;
+      jitterY = this.brownianY;
+    } else if (p.jitterMode === "micro") {
+      jitterX = Math.sin(this.time * TAU * frequency) * amplitude;
+      jitterY = Math.cos(this.time * TAU * frequency * 1.13) * amplitude * 0.72;
+    } else if (p.jitterMode === "stutter") {
+      const pulse = Math.round(this.time * frequency) % 2 === 0 ? 1 : 0;
+      jitterX = pulse ? amplitude * 0.8 : -amplitude * 0.35;
+      jitterY = pulse ? -amplitude * 0.32 : amplitude * 0.22;
+      if (gapLength < (p.stickSlipThreshold || 0)) {
+        jitterX *= 0.38;
+        jitterY *= 0.38;
+      }
+    }
+
+    this.lastJitterX = this.jitterX;
+    this.lastJitterY = this.jitterY;
+    this.jitterX = jitterX;
+    this.jitterY = jitterY;
+    this.jitterEnergy = Math.hypot(this.jitterX - this.lastJitterX, this.jitterY - this.lastJitterY) / Math.max(dt, 1 / 240);
+  }
+
+  update(dt) {
+    const safeDt = clamp(dt, 1 / 240, 0.05);
+    const p = this.params;
+    const followAlpha = frameIndependentAlpha(p.lerpFactor || 0, safeDt);
+    const inertiaRetention = frameIndependentRetention(p.inertiaCarry || 0, safeDt);
+    const dampingRetention = frameIndependentRetention(p.damping || 0.9, safeDt);
+    const springStrength = (p.springBack || 0) * safeDt * 0.03;
+    const targetMotion = Math.hypot(this.targetX - this.lastTargetX, this.targetY - this.lastTargetY);
+
+    this.time += safeDt;
+    this.previousX = this.currentX;
+    this.previousY = this.currentY;
+    this.slipReleasedThisFrame = false;
+    this.gridGateThisFrame = false;
+    this.gridGateAmount = 0;
+    this.isStuck = false;
+
+    let gapX = this.targetX - this.currentX;
+    let gapY = this.targetY - this.currentY;
+    let gapLength = Math.hypot(gapX, gapY);
+    let baseMoveX = gapX * followAlpha * (p.speedScale || 1);
+    let baseMoveY = gapY * followAlpha * (p.speedScale || 1);
+
+    if (p.stickSlipThreshold > 0) {
+      if (gapLength < p.stickSlipThreshold) {
+        baseMoveX = 0;
+        baseMoveY = 0;
+        this.velocityX *= 0.25;
+        this.velocityY *= 0.25;
+        this.isStuck = gapLength > 0.35;
+      } else {
+        baseMoveX = gapX * clamp(p.stickSlipRelease, 0, 1.25);
+        baseMoveY = gapY * clamp(p.stickSlipRelease, 0, 1.25);
+        this.slipReleasedThisFrame = true;
+        if (gapLength > 0.001 && p.recoilPixels > 0) {
+          const nx = gapX / gapLength;
+          const ny = gapY / gapLength;
+          const recoilSpeed = (p.recoilPixels / safeDt) * 0.12;
+          this.recoilVX = -nx * recoilSpeed;
+          this.recoilVY = -ny * recoilSpeed;
+        }
+      }
+    }
+
+    if (p.gridSnapSize > 0 && !this.slipReleasedThisFrame) {
+      const predictedX = this.currentX + baseMoveX;
+      const predictedY = this.currentY + baseMoveY;
+      let crossed = false;
+
+      if (p.gridAxis === "x" || p.gridAxis === "both") {
+        crossed = crossed || Math.floor(predictedX / p.gridSnapSize) !== Math.floor(this.currentX / p.gridSnapSize);
+      }
+      if (p.gridAxis === "y" || p.gridAxis === "both") {
+        crossed = crossed || Math.floor(predictedY / p.gridSnapSize) !== Math.floor(this.currentY / p.gridSnapSize);
+      }
+
+      if (crossed && this.gridHoldTimer <= 0) {
+        this.gridHoldTimer = (p.gridHoldMs || 16) / 1000;
+        this.gridGateThisFrame = true;
+        this.gridGateAmount = 1;
+      }
+    }
+
+    if (this.gridHoldTimer > 0) {
+      this.gridHoldTimer = Math.max(0, this.gridHoldTimer - safeDt);
+      baseMoveX *= 0.08;
+      baseMoveY *= 0.08;
+      this.velocityX *= 0.16;
+      this.velocityY *= 0.16;
+      if (!this.gridGateThisFrame) {
+        this.gridGateAmount = clamp(this.gridHoldTimer / Math.max((p.gridHoldMs || 16) / 1000, 1 / 240), 0, 1);
+      }
+    }
+
+    this.computeJitter(safeDt, gapLength, targetMotion);
+
+    if (springStrength > 0 && gapLength > 0.001) {
+      this.velocityX += gapX * springStrength;
+      this.velocityY += gapY * springStrength;
+    }
+
+    this.recoilVX *= Math.pow(0.24, safeDt * 60);
+    this.recoilVY *= Math.pow(0.24, safeDt * 60);
+
+    let nextX = this.currentX + baseMoveX + this.velocityX * safeDt + this.recoilVX * safeDt + this.jitterX;
+    let nextY = this.currentY + baseMoveY + this.velocityY * safeDt + this.recoilVY * safeDt + this.jitterY;
+
+    if (p.overshootAmount > 0) {
+      const nextGapX = this.targetX - nextX;
+      const nextGapY = this.targetY - nextY;
+      if (gapX !== 0 && Math.sign(gapX) !== Math.sign(nextGapX) && Math.abs(gapX) < 52) {
+        nextX = this.targetX - nextGapX * p.overshootAmount;
+        this.velocityX *= -p.overshootAmount * 0.78;
+      }
+      if (gapY !== 0 && Math.sign(gapY) !== Math.sign(nextGapY) && Math.abs(gapY) < 52) {
+        nextY = this.targetY - nextGapY * p.overshootAmount;
+        this.velocityY *= -p.overshootAmount * 0.78;
+      }
+    }
+
+    nextX = clamp(nextX, 0, window.innerWidth);
+    nextY = clamp(nextY, 0, window.innerHeight);
+
+    this.deltaX = nextX - this.currentX;
+    this.deltaY = nextY - this.currentY;
+    this.currentX = nextX;
+    this.currentY = nextY;
+    this.virtualDelta = Math.hypot(this.deltaX, this.deltaY);
+    this.virtualSpeed = this.virtualDelta / safeDt;
+    this.virtualAcceleration = (this.virtualSpeed - this.previousSpeed) / safeDt;
+    this.previousSpeed = this.virtualSpeed;
+
+    const carry = inertiaRetention * dampingRetention;
+    const driveVX = baseMoveX / safeDt;
+    const driveVY = baseMoveY / safeDt;
+    this.velocityX = this.velocityX * carry + driveVX * carry * 0.32;
+    this.velocityY = this.velocityY * carry + driveVY * carry * 0.32;
+
+    const maxSpeed = p.stickSlipThreshold > 0 ? 1400 : p.inertiaCarry > 0.9 ? 900 : 1100;
+    const velocityMagnitude = Math.hypot(this.velocityX, this.velocityY);
+    if (velocityMagnitude > maxSpeed) {
+      const scale = maxSpeed / velocityMagnitude;
+      this.velocityX *= scale;
+      this.velocityY *= scale;
+    }
+
+    if (this.isStuck) {
+      this.velocityX *= 0.08;
+      this.velocityY *= 0.08;
+    }
+
+    this.lastTargetX = this.targetX;
+    this.lastTargetY = this.targetY;
+
+    this.render();
+  }
+
+  render() {
+    this.element.style.transform = `translate3d(${this.currentX}px, ${this.currentY}px, 0)`;
+  }
+
+  getState() {
+    return {
+      targetX: this.targetX,
+      targetY: this.targetY,
+      currentX: this.currentX,
+      currentY: this.currentY,
+      previousX: this.previousX,
+      previousY: this.previousY,
+      deltaX: this.deltaX,
+      deltaY: this.deltaY,
+      virtualDelta: this.virtualDelta,
+      velocityX: this.velocityX,
+      velocityY: this.velocityY,
+      virtualSpeed: this.virtualSpeed,
+      virtualAcceleration: this.virtualAcceleration,
+      jitterX: this.jitterX,
+      jitterY: this.jitterY,
+      jitterEnergy: this.jitterEnergy,
+      isStuck: this.isStuck,
+      slipReleasedThisFrame: this.slipReleasedThisFrame,
+      gridGateThisFrame: this.gridGateThisFrame,
+      gridGateAmount: this.gridGateAmount
+    };
+  }
+}
+
+class HapticAudioManager {
+  constructor(audioContext, profiles) {
+    this.audioCtx = audioContext;
+    this.materialProfiles = profiles;
+    this.tracks = new Map();
+    this.currentMaterialKey = currentMaterial;
+    this.activeTrack = null;
+    this.isLoaded = false;
+    this.transientGainEnergy = 0;
+    this.transientRateEnergy = 0;
+    this.gateEnvelope = 0;
+    this.usedFileFallback = false;
+    this.reverbImpulse = this.createReverbImpulse();
+  }
+
+  createReverbImpulse() {
+    const sampleRate = this.audioCtx.sampleRate;
+    const duration = 2.8;
+    const decay = 3.8;
+    const length = Math.max(1, Math.floor(sampleRate * duration));
+    const impulse = this.audioCtx.createBuffer(2, length, sampleRate);
+
+    for (let channelIndex = 0; channelIndex < impulse.numberOfChannels; channelIndex += 1) {
+      const channelData = impulse.getChannelData(channelIndex);
+      for (let i = 0; i < length; i += 1) {
+        const t = i / length;
+        const envelope = Math.pow(1 - t, decay);
+        channelData[i] = (Math.random() * 2 - 1) * envelope;
+      }
+    }
+
+    return impulse;
+  }
+
+  async loadAll() {
+    await Promise.all(sampleKeys.map(async (key) => {
+      const track = this.ensureTrack(key);
+      if (track.source || track.mediaElement) return;
+      const loadedAsset = await this.loadTrackAsset(key);
+      this.startTrack(track, loadedAsset);
+    }));
+
+    this.isLoaded = true;
+    this.activeTrack = this.ensureTrack(this.currentMaterialKey);
+  }
+
+  ensureTrack(materialKey) {
+    if (!this.tracks.has(materialKey)) {
+      this.tracks.set(materialKey, this.createTrack(materialKey));
+    }
+    return this.tracks.get(materialKey);
+  }
+
+  createTrack(materialKey) {
+    const profile = this.materialProfiles[materialKey];
+    const filter = this.audioCtx.createBiquadFilter();
+    const gain = this.audioCtx.createGain();
+    const dryGain = this.audioCtx.createGain();
+    const delayNode = this.audioCtx.createDelay(0.6);
+    const delayFeedback = this.audioCtx.createGain();
+    const delayWet = this.audioCtx.createGain();
+    const convolver = this.audioCtx.createConvolver();
+    const reverbWet = this.audioCtx.createGain();
+    const now = this.audioCtx.currentTime;
+
+    filter.type = profile.filterType;
+    filter.frequency.setValueAtTime(profile.filterBaseHz, now);
+    filter.Q.setValueAtTime(0.707, now);
+    gain.gain.setValueAtTime(0, now);
+    dryGain.gain.setValueAtTime(1, now);
+    delayNode.delayTime.setValueAtTime(0.12, now);
+  delayFeedback.gain.setValueAtTime(0.28, now);
+  delayWet.gain.setValueAtTime(0.14, now);
+    convolver.buffer = this.reverbImpulse;
+  reverbWet.gain.setValueAtTime(0.2, now);
+    filter.connect(gain);
+    gain.connect(dryGain);
+    dryGain.connect(this.audioCtx.destination);
+    gain.connect(delayNode);
+    delayNode.connect(delayWet);
+    delayWet.connect(this.audioCtx.destination);
+    delayNode.connect(delayFeedback);
+    delayFeedback.connect(delayNode);
+    gain.connect(convolver);
+    convolver.connect(reverbWet);
+    reverbWet.connect(this.audioCtx.destination);
+
+    return {
+      key: materialKey,
+      source: null,
+      filter,
+      gain,
+      dryGain,
+      delayNode,
+      delayFeedback,
+      delayWet,
+      convolver,
+      reverbWet,
+      buffer: null,
+      mediaElement: null,
+      mediaSourceNode: null,
+  mediaUsesWebAudio: false,
+      currentGain: 0,
+      currentFilterHz: profile.filterBaseHz,
+      currentFilterQ: 0.707,
+      currentPlaybackRate: 1,
+      currentDetune: 0,
+      currentDelayTime: 0.12,
+      currentDelayFeedback: 0.28,
+      currentDelayWet: 0.14,
+      currentReverbWet: 0.2
+    };
+  }
+
+  buildSourceCandidates(rawSrc) {
+    if (!rawSrc || rawSrc.startsWith("blob:")) {
+      return [rawSrc];
+    }
+
+    const normalized = rawSrc.replace(/\\/g, "/");
+    const variants = [normalized];
+
+    if (!normalized.startsWith("./")) {
+      variants.push(`./${normalized}`);
+    }
+
+    if (normalized.includes(" ")) {
+      variants.push(normalized.replace(/ /g, "%20"));
+    }
+
+    if (normalized.includes("%20")) {
+      variants.push(normalized.replace(/%20/g, " "));
+    }
+
+    try {
+      const pageBase = new URL("./", window.location.href);
+      variants.push(new URL(normalized, pageBase).href);
+      if (!normalized.startsWith("./")) {
+        variants.push(new URL(`./${normalized}`, pageBase).href);
+      }
+    } catch {
+      // Ignore URL construction failure for unusual protocols.
+    }
+
+    return Array.from(new Set(variants));
+  }
+
+  async loadTrackAsset(materialKey) {
+    const profile = this.materialProfiles[materialKey];
+    const rawSrc = resolveAudioSourceForMaterial(materialKey, profile.audioSrc);
+    const sourceCandidates = this.buildSourceCandidates(rawSrc);
+
+    if (window.location.protocol === "file:" || rawSrc.startsWith("blob:")) {
+      this.usedFileFallback = true;
+      let lastError = null;
+
+      for (const src of sourceCandidates) {
+        try {
+          return await this.loadTrackFromMediaElement(src);
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      throw lastError || new Error(`Unable to load local media source for ${materialKey}`);
+    }
+
+    try {
+      for (const candidate of sourceCandidates) {
+        const fetchTargets = [candidate];
+        if (!candidate.startsWith("blob:")) {
+          fetchTargets.push(encodeURI(candidate));
+        }
+
+        for (const target of fetchTargets) {
+          const response = await fetch(target);
+          if (!response.ok) {
+            continue;
+          }
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = await this.audioCtx.decodeAudioData(arrayBuffer);
+          return { kind: "buffer", buffer };
+        }
+      }
+
+      throw new Error(`Unable to fetch audio source for ${materialKey}`);
+    } catch (error) {
+      this.usedFileFallback = true;
+      let lastError = error;
+
+      for (const src of sourceCandidates) {
+        try {
+          return await this.loadTrackFromMediaElement(src);
+        } catch (mediaError) {
+          lastError = mediaError;
+        }
+      }
+
+      throw lastError;
+    }
+  }
+
+  loadTrackFromMediaElement(encodedSrc) {
+    return new Promise((resolve, reject) => {
+      const element = new Audio(encodedSrc);
+      element.preload = "auto";
+      element.loop = true;
+
+      const cleanup = () => {
+        element.removeEventListener("canplay", handleReady);
+        element.removeEventListener("loadedmetadata", handleReady);
+        element.removeEventListener("canplaythrough", handleReady);
+        element.removeEventListener("error", handleError);
+        window.clearTimeout(timeoutId);
+      };
+
+      const handleReady = () => {
+        cleanup();
+        resolve({ kind: "media", element });
+      };
+
+      const handleError = () => {
+        cleanup();
+        reject(new Error(`Unable to load media element source: ${encodedSrc}`));
+      };
+
+      const timeoutId = window.setTimeout(() => {
+        cleanup();
+        reject(new Error(`Timed out while loading media source: ${encodedSrc}`));
+      }, 12000);
+
+      element.addEventListener("canplay", handleReady, { once: true });
+      element.addEventListener("loadedmetadata", handleReady, { once: true });
+      element.addEventListener("canplaythrough", handleReady, { once: true });
+      element.addEventListener("error", handleError, { once: true });
+      element.load();
+    });
+  }
+
+  startTrack(track, loadedAsset) {
+    const profile = this.materialProfiles[track.key];
+    const now = this.audioCtx.currentTime;
+
+    if (loadedAsset.kind === "buffer") {
+      const source = this.audioCtx.createBufferSource();
+      source.buffer = loadedAsset.buffer;
+      source.loop = true;
+      source.connect(track.filter);
+      source.playbackRate.setValueAtTime(1, now);
+      if (source.detune) {
+        source.detune.setValueAtTime(0, now);
+      }
+      source.start();
+      track.source = source;
+      track.buffer = loadedAsset.buffer;
+      track.mediaElement = null;
+      track.mediaSourceNode = null;
+    } else {
+      const mediaElement = loadedAsset.element;
+      mediaElement.playbackRate = 1;
+      let mediaSourceNode = null;
+      let mediaUsesWebAudio = false;
+      const allowWebAudioRouting = window.location.protocol !== "file:";
+
+      if (allowWebAudioRouting) {
+        try {
+          mediaSourceNode = this.audioCtx.createMediaElementSource(mediaElement);
+          mediaSourceNode.connect(track.filter);
+          mediaElement.volume = 1;
+          mediaUsesWebAudio = true;
+        } catch {
+          mediaElement.volume = 0;
+          mediaUsesWebAudio = false;
+        }
+      } else {
+        mediaElement.volume = 0;
+        mediaUsesWebAudio = false;
+      }
+
+      mediaElement.play().catch(() => {
+        // Browser may defer playback briefly; it can start on subsequent user interaction.
+      });
+      track.source = null;
+      track.buffer = null;
+      track.mediaElement = mediaElement;
+      track.mediaSourceNode = mediaSourceNode;
+      track.mediaUsesWebAudio = mediaUsesWebAudio;
+    }
+
+    track.filter.type = profile.filterType;
+    track.filter.frequency.setValueAtTime(profile.filterBaseHz, now);
+    track.filter.Q.setValueAtTime(0.707, now);
+    track.gain.gain.setValueAtTime(0, now);
+    track.currentGain = 0;
+    track.currentFilterHz = profile.filterBaseHz;
+    track.currentFilterQ = 0.707;
+    track.currentPlaybackRate = 1;
+    track.currentDetune = 0;
+    track.currentDelayTime = 0.12;
+    track.currentDelayFeedback = 0.28;
+    track.currentDelayWet = 0.14;
+    track.currentReverbWet = 0.2;
+  }
+
+  ensureMediaElementPlaying(track) {
+    if (!track || !track.mediaElement) return;
+    if (!track.mediaElement.paused) return;
+
+    track.mediaElement.play().catch(() => {
+      // Some browsers reject autoplay intermittently; a later interaction/update will retry.
+    });
+  }
+
+  scheduleGain(track, target, duration) {
+    if (!track) return;
+    const safeTarget = clamp(target, 0, 1);
+
+    if (track.mediaElement && track.mediaUsesWebAudio && track.mediaElement.volume !== 1) {
+      track.mediaElement.volume = 1;
+    }
+
+    if (track.mediaElement && !track.mediaUsesWebAudio) {
+      track.mediaElement.volume = safeTarget;
+      track.currentGain = safeTarget;
+
+      if (safeTarget > 0.001) {
+        this.ensureMediaElementPlaying(track);
+      }
+      return;
+    }
+
+    const now = this.audioCtx.currentTime;
+    track.gain.gain.cancelScheduledValues(now);
+    track.gain.gain.setValueAtTime(track.currentGain, now);
+    track.gain.gain.linearRampToValueAtTime(safeTarget, now + duration);
+    track.currentGain = safeTarget;
+
+    if (safeTarget > 0.001) {
+      this.ensureMediaElementPlaying(track);
+    }
+  }
+
+  scheduleFilter(track, targetHz, duration) {
+    if (!track) return;
+    const now = this.audioCtx.currentTime;
+    const safeTarget = Math.max(40, targetHz);
+    track.filter.frequency.cancelScheduledValues(now);
+    track.filter.frequency.setValueAtTime(track.currentFilterHz, now);
+    track.filter.frequency.linearRampToValueAtTime(safeTarget, now + duration);
+    track.currentFilterHz = safeTarget;
+  }
+
+  scheduleFilterQ(track, targetQ, duration) {
+    if (!track) return;
+    const now = this.audioCtx.currentTime;
+    const safeTarget = clamp(targetQ, 0.3, 12);
+    track.filter.Q.cancelScheduledValues(now);
+    track.filter.Q.setValueAtTime(track.currentFilterQ, now);
+    track.filter.Q.linearRampToValueAtTime(safeTarget, now + duration);
+    track.currentFilterQ = safeTarget;
+  }
+
+  scheduleRate(track, targetRate, duration) {
+    if (!track) return;
+    const now = this.audioCtx.currentTime;
+    const safeTarget = clamp(targetRate, 0.45, 1.45);
+
+    if (track.source) {
+      track.source.playbackRate.cancelScheduledValues(now);
+      track.source.playbackRate.setValueAtTime(track.currentPlaybackRate, now);
+      track.source.playbackRate.setTargetAtTime(safeTarget, now, Math.max(0.01, duration * 0.45));
+    } else if (track.mediaElement) {
+      track.mediaElement.playbackRate = safeTarget;
+    }
+
+    track.currentPlaybackRate = safeTarget;
+  }
+
+  scheduleDetune(track, targetCents, duration) {
+    if (!track || !track.source || !track.source.detune) return;
+    const now = this.audioCtx.currentTime;
+    const safeTarget = clamp(targetCents, -36, 36);
+    track.source.detune.cancelScheduledValues(now);
+    track.source.detune.setValueAtTime(track.currentDetune, now);
+    track.source.detune.setTargetAtTime(safeTarget, now, Math.max(0.01, duration * 0.45));
+    track.currentDetune = safeTarget;
+  }
+
+  scheduleDelayTime(track, targetSeconds, duration) {
+    if (!track || !track.delayNode) return;
+    const now = this.audioCtx.currentTime;
+    const safeTarget = clamp(targetSeconds, 0.01, 0.6);
+    track.delayNode.delayTime.cancelScheduledValues(now);
+    track.delayNode.delayTime.setValueAtTime(track.currentDelayTime, now);
+    track.delayNode.delayTime.linearRampToValueAtTime(safeTarget, now + duration);
+    track.currentDelayTime = safeTarget;
+  }
+
+  scheduleDelayFeedback(track, targetGain, duration) {
+    if (!track || !track.delayFeedback) return;
+    const now = this.audioCtx.currentTime;
+    const safeTarget = clamp(targetGain, 0, 0.92);
+    track.delayFeedback.gain.cancelScheduledValues(now);
+    track.delayFeedback.gain.setValueAtTime(track.currentDelayFeedback, now);
+    track.delayFeedback.gain.linearRampToValueAtTime(safeTarget, now + duration);
+    track.currentDelayFeedback = safeTarget;
+  }
+
+  scheduleDelayWet(track, targetGain, duration) {
+    if (!track || !track.delayWet) return;
+    const now = this.audioCtx.currentTime;
+    const safeTarget = clamp(targetGain, 0, 0.78);
+    track.delayWet.gain.cancelScheduledValues(now);
+    track.delayWet.gain.setValueAtTime(track.currentDelayWet, now);
+    track.delayWet.gain.linearRampToValueAtTime(safeTarget, now + duration);
+    track.currentDelayWet = safeTarget;
+  }
+
+  scheduleReverbWet(track, targetGain, duration) {
+    if (!track || !track.reverbWet) return;
+    const now = this.audioCtx.currentTime;
+    const safeTarget = clamp(targetGain, 0, 0.88);
+    track.reverbWet.gain.cancelScheduledValues(now);
+    track.reverbWet.gain.setValueAtTime(track.currentReverbWet, now);
+    track.reverbWet.gain.linearRampToValueAtTime(safeTarget, now + duration);
+    track.currentReverbWet = safeTarget;
+  }
+
+  setMaterial(materialKey) {
+    const nextTrack = this.ensureTrack(materialKey);
+    const previousTrack = this.activeTrack;
+    const profile = this.materialProfiles[materialKey];
+    const now = this.audioCtx.currentTime;
+
+    this.currentMaterialKey = materialKey;
+    this.activeTrack = nextTrack;
+    this.transientGainEnergy = 0;
+    this.transientRateEnergy = 0;
+    this.gateEnvelope = 0;
+
+    if (previousTrack && previousTrack !== nextTrack) {
+      this.scheduleGain(previousTrack, 0, 0.05);
+    }
+
+    nextTrack.filter.type = profile.filterType;
+    nextTrack.filter.frequency.cancelScheduledValues(now);
+    nextTrack.filter.frequency.setValueAtTime(nextTrack.currentFilterHz, now);
+    nextTrack.filter.frequency.linearRampToValueAtTime(profile.filterBaseHz, now + 0.03);
+    nextTrack.filter.Q.cancelScheduledValues(now);
+    nextTrack.filter.Q.setValueAtTime(nextTrack.currentFilterQ, now);
+    nextTrack.filter.Q.linearRampToValueAtTime(0.707, now + 0.03);
+    nextTrack.currentFilterHz = profile.filterBaseHz;
+    nextTrack.currentFilterQ = 0.707;
+    this.scheduleDetune(nextTrack, 0, 0.02);
+    this.scheduleDelayTime(nextTrack, 0.12, 0.04);
+    this.scheduleDelayFeedback(nextTrack, 0.28, 0.04);
+    this.scheduleDelayWet(nextTrack, 0.14, 0.04);
+    this.scheduleReverbWet(nextTrack, 0.2, 0.04);
+    this.ensureMediaElementPlaying(nextTrack);
+  }
+
+  fadeOut(durationSeconds) {
+    if (!this.activeTrack) return;
+    this.scheduleGain(this.activeTrack, 0, durationSeconds);
+  }
+
+  reset() {
+    this.transientGainEnergy = 0;
+    this.transientRateEnergy = 0;
+    this.gateEnvelope = 0;
+    this.tracks.forEach((track) => {
+      this.scheduleGain(track, 0, 0.05);
+      this.scheduleDetune(track, 0, 0.03);
+      this.scheduleFilter(track, this.materialProfiles[track.key].filterBaseHz, 0.04);
+      this.scheduleFilterQ(track, 0.707, 0.04);
+      this.scheduleDelayTime(track, 0.12, 0.04);
+      this.scheduleDelayFeedback(track, 0.28, 0.04);
+      this.scheduleDelayWet(track, 0.14, 0.04);
+      this.scheduleReverbWet(track, 0.2, 0.04);
+    });
+  }
+
+  dispose() {
+    this.tracks.forEach((track) => {
+      try {
+        if (track.source) {
+          track.source.stop();
+          track.source.disconnect();
+        }
+      } catch {
+        // ignore stop/disconnect race for stopped sources
+      }
+
+      if (track.mediaElement) {
+        track.mediaElement.pause();
+        track.mediaElement.src = "";
+      }
+
+      if (track.mediaSourceNode) {
+        try {
+          track.mediaSourceNode.disconnect();
+        } catch {
+          // ignore
+        }
+      }
+
+      try {
+        track.filter.disconnect();
+        track.gain.disconnect();
+        track.dryGain.disconnect();
+        track.delayNode.disconnect();
+        track.delayFeedback.disconnect();
+        track.delayWet.disconnect();
+        track.convolver.disconnect();
+        track.reverbWet.disconnect();
+      } catch {
+        // ignore
+      }
+    });
+
+    this.tracks.clear();
+    this.activeTrack = null;
+    this.isLoaded = false;
+  }
+
+  update(dt, cursorState, currentInteractionState) {
+    if (!this.isLoaded || !this.activeTrack) return;
+
+    const safeDt = clamp(dt, 1 / 240, 0.05);
+    const profile = this.materialProfiles[this.currentMaterialKey];
+    const motion = profile.audioMotion;
+    const track = this.activeTrack;
+    const influence = getSensationInfluence();
+  const adsr = getEffectiveAdsrFromInfluence(influence);
+    const movingVirtual = cursorState.virtualDelta > 0.005;
+    const activeContact = currentInteractionState.onPad && !currentInteractionState.orbitDragging;
+    const effectiveSpeedReference = clamp(
+      motion.speedReference * (1 + influence.density * 0.36 + influence.viscosity * 0.22 - influence.hardness * 0.18),
+      220,
+      1800
+    );
+    const speedNorm = clamp(cursorState.virtualSpeed / effectiveSpeedReference, 0, 1);
+    const baseGain = activeContact
+      ? clamp((0.01 + adsr.sustain * 0.08) + (movingVirtual ? 0.05 : 0) + speedNorm * 0.9 + influence.roughness * 0.05 + influence.density * 0.04, 0, 1)
+      : 0;
+    const accelPeak = Math.abs(cursorState.virtualAcceleration);
+    const effectiveTransientThreshold = clamp(
+      motion.transientAccelThreshold * (1 + influence.density * 0.3 + influence.viscosity * 0.24 - influence.hardness * 0.28 - influence.roughness * 0.14),
+      1800,
+      15000
+    );
+    const accelNorm = clamp(accelPeak / effectiveTransientThreshold, 0, 2.4);
+    const transientGainBoost = clamp(
+      motion.transientGainBoost * (1 + influence.hardness * 0.62 + influence.roughness * 0.24 - influence.viscosity * 0.26),
+      0.02,
+      0.45
+    );
+    const transientRateBoost = clamp(
+      motion.transientRateBoost * (1 + influence.hardness * 0.52 + influence.elasticity * 0.22 - influence.density * 0.18),
+      0.006,
+      0.16
+    );
+
+    if (activeContact && (cursorState.slipReleasedThisFrame || accelNorm > 1)) {
+      const transientBoost = cursorState.slipReleasedThisFrame ? 1 : accelNorm;
+      this.transientGainEnergy = Math.max(this.transientGainEnergy, transientGainBoost * transientBoost);
+      this.transientRateEnergy = Math.max(this.transientRateEnergy, transientRateBoost * transientBoost);
+    }
+
+    if (activeContact && cursorState.gridGateThisFrame) {
+      this.gateEnvelope = 1;
+    }
+
+  const gainEnergyDecay = clamp((26 + influence.hardness * 14 - influence.roughness * 12 - influence.viscosity * 8 - influence.density * 7) * 0.55 + (1 / adsr.decay) * 4.5, 8, 48);
+  const rateEnergyDecay = clamp((28 + influence.hardness * 12 - influence.roughness * 9 - influence.elasticity * 4 - influence.density * 5) * 0.6 + (1 / adsr.decay) * 3.7, 10, 48);
+    const gateDecay = clamp(34 + influence.hardness * 5 - influence.roughness * 7 - influence.viscosity * 6, 12, 44);
+
+    this.transientGainEnergy *= Math.exp(-safeDt * gainEnergyDecay);
+    this.transientRateEnergy *= Math.exp(-safeDt * rateEnergyDecay);
+    this.gateEnvelope *= Math.exp(-safeDt * gateDecay);
+
+    const duckFactor = 1 - motion.gateDuckAmount * clamp(this.gateEnvelope + cursorState.gridGateAmount * 0.25, 0, 1);
+    const targetGain = clamp((activeContact ? baseGain : 0) * duckFactor + (activeContact ? this.transientGainEnergy : 0), 0, 1);
+    const effectiveFilterBaseHz = clamp(
+      profile.filterBaseHz * (1 + influence.hardness * 0.52 + influence.roughness * 0.16 - influence.viscosity * 0.34 - influence.density * 0.28),
+      140,
+      18000
+    );
+    const effectiveFilterMaxHz = clamp(
+      profile.filterMaxHz * (1 + influence.hardness * 0.42 + influence.roughness * 0.12 - influence.viscosity * 0.3 - influence.density * 0.24),
+      Math.max(260, effectiveFilterBaseHz + 180),
+      20000
+    );
+    const targetFilterHz = activeContact ? lerp(effectiveFilterBaseHz, effectiveFilterMaxHz, speedNorm) : effectiveFilterBaseHz;
+    const basePlaybackRate = mapPlaybackRate(speedNorm, profile.playbackRateRange);
+    const jitterSigned = clamp((cursorState.jitterX + cursorState.jitterY) * 4.2, -1, 1);
+    const effectiveDetuneRange = clamp(motion.detuneRangeCents + influence.roughness * 12 - influence.viscosity * 4 + influence.elasticity * 3, 0, 30);
+    const targetDetune = effectiveDetuneRange > 0 && activeContact ? jitterSigned * effectiveDetuneRange : 0;
+    const releaseOscillation = !activeContact
+      ? Math.sin(this.audioCtx.currentTime * (6 + clamp(influence.elasticity, -1, 1) * 3)) * Math.max(0, influence.elasticity) * 0.02
+      : 0;
+    const targetPlaybackRate = clamp(basePlaybackRate + (activeContact ? this.transientRateEnergy : 0) + releaseOscillation, 0.45, 1.45);
+    const targetFilterQ = clamp(0.707 + influence.elasticity * 2 + influence.roughness * 0.45 + influence.hardness * 0.2 - influence.viscosity * 0.3, 0.35, 8);
+    const reverbMix = clamp(sensationControls.reverb, 0, 1);
+    const delayMs = clamp(sensationControls.delayMs, DELAY_TIME_MS_LIMITS.min, DELAY_TIME_MS_LIMITS.max);
+    const delayNorm = clamp((delayMs - DELAY_TIME_MS_LIMITS.min) / (DELAY_TIME_MS_LIMITS.max - DELAY_TIME_MS_LIMITS.min), 0, 1);
+    const targetDelayTime = clamp(delayMs / 1000, 0.02, 0.6);
+  const targetDelayFeedback = clamp(0.14 + delayNorm * 0.68 + Math.max(0, influence.density) * 0.09 + Math.max(0, influence.humidity) * 0.08, 0, 0.92);
+  const targetDelayWet = clamp(0.1 + delayNorm * (0.16 + (activeContact ? 0.2 : 0.12) + speedNorm * 0.15) + Math.max(0, influence.humidity) * 0.06, 0, 0.78);
+  const targetReverbWet = clamp(reverbMix * (1 + Math.max(0, influence.humidity) * 0.28 - Math.max(0, influence.temperature) * 0.12), 0, 0.88);
+  const temperatureRateOffset = influence.temperature * 0.035;
+  const humidityFilterOffset = influence.humidity * -360;
+  const temperatureFilterOffset = influence.temperature * -1800;
+  const targetPlaybackRateWithClimate = clamp(targetPlaybackRate + temperatureRateOffset, 0.45, 1.45);
+  const targetFilterHzWithClimate = clamp(targetFilterHz + humidityFilterOffset + temperatureFilterOffset, 120, 20000);
+
+  const attackDuration = adsr.attack;
+  const releaseDuration = adsr.release;
+    const gainDuration = activeContact && movingVirtual ? attackDuration : releaseDuration;
+    const filterDuration = activeContact ? clamp(0.045 - influence.hardness * 0.018 + influence.viscosity * 0.02 + influence.density * 0.016, 0.012, 0.11) : releaseDuration;
+    const rateDuration = clamp(0.03 - influence.hardness * 0.011 + influence.density * 0.012 + influence.viscosity * 0.008, 0.01, 0.065);
+    const effectDuration = clamp(0.05 + Math.max(0, influence.viscosity) * 0.03, 0.03, 0.12);
+
+    this.scheduleGain(track, targetGain, gainDuration);
+  this.scheduleFilter(track, targetFilterHzWithClimate, filterDuration);
+    this.scheduleFilterQ(track, targetFilterQ, filterDuration);
+  this.scheduleRate(track, targetPlaybackRateWithClimate, rateDuration);
+    this.scheduleDetune(track, targetDetune, 0.02);
+    this.scheduleDelayTime(track, targetDelayTime, effectDuration);
+    this.scheduleDelayFeedback(track, targetDelayFeedback, effectDuration);
+    this.scheduleDelayWet(track, targetDelayWet, effectDuration);
+    this.scheduleReverbWet(track, targetReverbWet, effectDuration);
+  }
+}
+
+function createSampleMaterial(profile) {
+  const textures = getSceneTextureSet();
+  return new THREE.MeshPhysicalMaterial({
+    color: profile.color,
+    emissive: profile.emissive,
+    emissiveIntensity: 0.04,
+    roughness: profile.visual.roughness,
+    metalness: profile.visual.metalness,
+    clearcoat: profile.visual.clearcoat,
+    transmission: profile.visual.transmission,
+    thickness: profile.visual.thickness,
+    bumpMap: textures.fineNoise,
+    bumpScale: 0.012,
+    roughnessMap: textures.coarseNoise,
+    envMap: scene.environment,
+    envMapIntensity: 1.2,
+    transparent: profile.visual.transmission > 0.01,
+    opacity: profile.visual.transmission > 0.01 ? 0.96 : 1
+  });
+}
+
+function createFurnitureSample(profile, materialKey) {
+  const group = new THREE.Group();
+  let animatedMesh = null;
+  const textures = getSceneTextureSet();
+  const mainMaterial = createSampleMaterial(profile);
+  const frameMaterial = new THREE.MeshStandardMaterial({
+    color: profile.accent,
+    roughness: 0.62,
+    metalness: 0.22,
+    map: textures.woodMap,
+    bumpMap: textures.fineNoise,
+    bumpScale: 0.01,
+    roughnessMap: textures.coarseNoise,
+    envMap: scene.environment
+  });
+
+  function addPart(geometry, material, x, y, z, rx = 0, ry = 0, rz = 0) {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(x, y, z);
+    mesh.rotation.set(rx, ry, rz);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    return mesh;
+  }
+
+  if (materialKey === "wood") {
+    animatedMesh = addPart(new THREE.BoxGeometry(0.28, 0.05, 0.28), mainMaterial, 0, 0.18, 0);
+    addPart(new THREE.BoxGeometry(0.28, 0.24, 0.04), frameMaterial, 0, 0.32, -0.12, -0.08, 0, 0);
+    [-1, 1].forEach((sx) => {
+      [-1, 1].forEach((sz) => {
+        addPart(new THREE.CylinderGeometry(0.014, 0.018, 0.2, 12), frameMaterial, sx * 0.1, 0.08, sz * 0.1);
+      });
+    });
+  } else if (materialKey === "paper") {
+    animatedMesh = addPart(new THREE.BoxGeometry(0.3, 0.028, 0.2), mainMaterial, 0, 0.13, 0.02, -0.14, 0, 0);
+    addPart(new THREE.BoxGeometry(0.3, 0.028, 0.2), frameMaterial, 0, 0.24, -0.11, -0.72, 0, 0);
+    addPart(new THREE.CylinderGeometry(0.012, 0.012, 0.18, 12), frameMaterial, -0.12, 0.085, 0.08, 0, 0, -0.28);
+    addPart(new THREE.CylinderGeometry(0.012, 0.012, 0.18, 12), frameMaterial, 0.12, 0.085, 0.08, 0, 0, 0.28);
+  } else if (materialKey === "fabric") {
+    animatedMesh = addPart(new THREE.BoxGeometry(0.34, 0.11, 0.24), mainMaterial, 0, 0.16, 0);
+    addPart(new THREE.BoxGeometry(0.34, 0.16, 0.07), frameMaterial, 0, 0.28, -0.085);
+    addPart(new THREE.BoxGeometry(0.07, 0.12, 0.24), frameMaterial, -0.135, 0.17, 0);
+    addPart(new THREE.BoxGeometry(0.07, 0.12, 0.24), frameMaterial, 0.135, 0.17, 0);
+    [-1, 1].forEach((sx) => {
+      [-1, 1].forEach((sz) => {
+        addPart(new THREE.CylinderGeometry(0.012, 0.014, 0.1, 10), frameMaterial, sx * 0.11, 0.05, sz * 0.08);
+      });
+    });
+  } else if (materialKey === "rubber") {
+    addPart(new THREE.TorusGeometry(0.14, 0.05, 18, 38), frameMaterial, 0, 0.15, 0, Math.PI / 2, 0, 0);
+    animatedMesh = addPart(new THREE.CylinderGeometry(0.13, 0.13, 0.06, 28), mainMaterial, 0, 0.24, 0);
+    [-1, 1].forEach((sx) => {
+      addPart(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 10), frameMaterial, sx * 0.08, 0.09, 0.08, 0.14, 0, 0);
+      addPart(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 10), frameMaterial, sx * 0.08, 0.09, -0.08, -0.14, 0, 0);
+    });
+  } else if (materialKey === "sand") {
+    animatedMesh = addPart(new THREE.BoxGeometry(0.26, 0.07, 0.26), mainMaterial, 0, 0.24, 0);
+    addPart(new THREE.CylinderGeometry(0.08, 0.1, 0.2, 18), frameMaterial, 0, 0.12, 0);
+    addPart(new THREE.CylinderGeometry(0.12, 0.13, 0.05, 18), frameMaterial, 0, 0.03, 0);
+  } else if (materialKey === "metal") {
+    animatedMesh = addPart(new THREE.CylinderGeometry(0.14, 0.14, 0.03, 34), mainMaterial, 0, 0.27, 0);
+    [-1, 1].forEach((sx) => {
+      [-1, 1].forEach((sz) => {
+        addPart(new THREE.CylinderGeometry(0.01, 0.012, 0.2, 12), frameMaterial, sx * 0.095, 0.14, sz * 0.095);
+      });
+    });
+    addPart(new THREE.TorusGeometry(0.11, 0.008, 12, 28), frameMaterial, 0, 0.09, 0, Math.PI / 2, 0, 0);
+  } else if (materialKey === "glass") {
+    animatedMesh = addPart(new THREE.CylinderGeometry(0.18, 0.18, 0.02, 36), mainMaterial, 0, 0.27, 0);
+    [-1, 1].forEach((sx) => {
+      addPart(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 12), frameMaterial, sx * 0.09, 0.14, 0.06, 0, 0.1 * sx, 0);
+      addPart(new THREE.CylinderGeometry(0.012, 0.012, 0.2, 12), frameMaterial, sx * 0.09, 0.14, -0.06, 0, -0.1 * sx, 0);
+    });
+    addPart(new THREE.CylinderGeometry(0.11, 0.12, 0.03, 20), frameMaterial, 0, 0.03, 0);
+  } else if (materialKey === "ceramic") {
+    animatedMesh = addPart(new THREE.CylinderGeometry(0.11, 0.15, 0.3, 22), mainMaterial, 0, 0.17, 0);
+    addPart(new THREE.TorusGeometry(0.13, 0.018, 16, 30), frameMaterial, 0, 0.31, 0, Math.PI / 2, 0, 0);
+    addPart(new THREE.CylinderGeometry(0.13, 0.13, 0.03, 22), frameMaterial, 0, 0.02, 0);
+  } else {
+    animatedMesh = addPart(new THREE.BoxGeometry(0.3, 0.025, 0.24), mainMaterial, 0, 0.26, 0);
+    addPart(new THREE.BoxGeometry(0.3, 0.24, 0.024), frameMaterial, 0, 0.13, -0.108, -0.08, 0, 0);
+    addPart(new THREE.BoxGeometry(0.024, 0.24, 0.24), frameMaterial, -0.108, 0.13, 0);
+    addPart(new THREE.BoxGeometry(0.024, 0.24, 0.24), frameMaterial, 0.108, 0.13, 0);
+  }
+
+  group.userData.animatedMesh = animatedMesh;
+  return group;
+}
+
+function applyEnvironmentToSceneMaterials() {
+  if (!scene || !scene.environment) return;
+  scene.traverse((object) => {
+    if (!object.isMesh || !object.material) return;
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    materials.forEach((material) => {
+      if (!material || !("envMap" in material)) return;
+      material.envMap = scene.environment;
+      if ("envMapIntensity" in material && typeof material.envMapIntensity === "number") {
+        material.envMapIntensity = Math.max(1.1, material.envMapIntensity);
+      }
+      material.needsUpdate = true;
+    });
+  });
+}
+
+function loadLebomboEnvironment() {
+  if (!THREE || typeof THREE.RGBELoader !== "function") {
+    console.warn("RGBELoader is unavailable. Skipping HDR environment.");
+    setStatus("HDR loader unavailable, using default environment.");
+    return;
+  }
+
+  try {
+    const loader = new THREE.RGBELoader();
+    loader.load(
+      STUDIO_HDR_PATH,
+      (texture) => {
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        scene.environment = texture;
+        applyEnvironmentToSceneMaterials();
+        setStatus("Studio HDR loaded. Interior materials now use realistic reflections.");
+      },
+      undefined,
+      (error) => {
+        console.warn("Failed to load studio HDR:", error);
+        setStatus("HDR load failed, using default interior lighting.");
+      }
+    );
+  } catch (error) {
+    console.warn("Error creating RGBELoader:", error);
+    setStatus("HDR environment disabled due to loader error. Using default lighting.");
+  }
+}
+
+function updatePadAppearance() {
+  const profile = materialProfiles[currentMaterial];
+  materialNameEl.textContent = profile.label;
+  materialDescriptionEl.textContent = profile.description;
+
+  if (!frictionPad || !pedestalTop) return;
+
+  frictionPad.material.roughness = profile.visual.roughness;
+  frictionPad.material.metalness = profile.visual.metalness;
+  frictionPad.material.clearcoat = profile.visual.clearcoat;
+  frictionPad.material.transmission = profile.visual.transmission;
+  frictionPad.material.thickness = profile.visual.thickness;
+  frictionPad.material.transparent = profile.visual.transmission > 0.01;
+  frictionPad.material.opacity = profile.visual.transmission > 0.01 ? 0.96 : 1;
+  frictionPad.material.color.setHex(profile.color);
+  pedestalTop.material.color.setHex(profile.accent);
+}
+
+function updateCursorAccent() {
+  const profile = materialProfiles[currentMaterial];
+  const accent = hexToCss(profile.accent);
+  cursorEl.style.color = accent;
+  cursorEl.querySelector(".glow").style.background = `radial-gradient(circle, ${hexToRgba(profile.accent, 0.28)} 0%, transparent 70%)`;
+  cursorEl.querySelector(".ring").style.boxShadow = `0 0 0 1px rgba(255, 255, 255, 0.26) inset, 0 0 28px ${hexToRgba(profile.accent, 0.24)}`;
+  cursorEl.querySelector(".dot").style.boxShadow = `0 0 12px ${hexToRgba(profile.accent, 0.28)}`;
+  updateCursorVisualTuning();
+}
+
+function setCursorAccentForMaterialKey(materialKey) {
+  const profile = materialProfiles[materialKey];
+  if (!profile) return;
+  const accent = hexToCss(profile.accent);
+  cursorEl.style.color = accent;
+  cursorEl.querySelector(".glow").style.background = `radial-gradient(circle, ${hexToRgba(profile.accent, 0.28)} 0%, transparent 70%)`;
+  cursorEl.querySelector(".ring").style.boxShadow = `0 0 0 1px rgba(255, 255, 255, 0.26) inset, 0 0 28px ${hexToRgba(profile.accent, 0.24)}`;
+  cursorEl.querySelector(".dot").style.boxShadow = `0 0 12px ${hexToRgba(profile.accent, 0.28)}`;
+}
+
+function switchMaterial(materialKey, immediate = false) {
+  if (!materialProfiles[materialKey]) return;
+
+  currentMaterial = materialKey;
+  updatePadAppearance();
+  updateCursorAccent();
+
+  if (materialCursor) {
+    materialCursor.setMaterial(buildCoordinatedCursorProfile(materialProfiles[materialKey].cursor));
+  }
+
+  if (hapticAudio && audioState.isUnlocked) {
+    hapticAudio.setMaterial(materialKey);
+    if (!interactionState.onPad) {
+      hapticAudio.fadeOut(immediate ? 0.02 : 0.04);
+    }
+  }
+}
+
+async function unlockExperience() {
+  if (audioState.isUnlocked || audioState.isUnlocking) return;
+
+  audioState.isUnlocking = true;
+  startButton.disabled = true;
+  setStatus("Loading audio buffers...");
+
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  if (!hapticAudio) {
+    hapticAudio = new HapticAudioManager(audioCtx, materialProfiles);
+  }
+
+  try {
+    await audioCtx.resume();
+    await hapticAudio.loadAll();
+
+    audioState.isUnlocked = true;
+    audioState.isUnlocking = false;
+    overlay.classList.add("hidden");
+    document.body.classList.add("experience-ready");
+    startButton.disabled = false;
+    if (hapticAudio.usedFileFallback) {
+      setStatus("Audio loaded from the local sound effect folder. Move cursor on the pad to hear material sound.");
+    } else {
+      setStatus("Audio loaded. The virtual cursor now drives hover, pad contact, and haptic sound in the animation loop.");
+    }
+  } catch (error) {
+    audioState.isUnlocking = false;
+    startButton.disabled = false;
+    setStatus("Audio load failed. Keep the `sound effect` folder beside this HTML and verify the browser allows local media playback.");
+    console.error("Audio unlock/load failed:", error);
+  }
+}
+
+function updateCamera() {
+  const cosPitch = Math.cos(orbitState.pitch);
+  camera.position.set(
+    orbitState.target.x + orbitState.radius * Math.sin(orbitState.yaw) * cosPitch,
+    orbitState.target.y + orbitState.radius * Math.sin(orbitState.pitch),
+    orbitState.target.z + orbitState.radius * Math.cos(orbitState.yaw) * cosPitch
+  );
+  camera.lookAt(orbitState.target);
+}
+
+function updateKeyboardCamera(delta) {
+  const moving =
+    moveState.KeyW || moveState.KeyA || moveState.KeyS || moveState.KeyD || moveState.KeyQ || moveState.KeyE;
+  if (!moving) return;
+
+  const forward = new THREE.Vector3(-Math.sin(orbitState.yaw), 0, -Math.cos(orbitState.yaw)).normalize();
+  const right = new THREE.Vector3(-forward.z, 0, forward.x).normalize();
+  const movement = new THREE.Vector3();
+  const speed = (moveState.ShiftLeft || moveState.ShiftRight ? 4.8 : 2.8) * delta;
+
+  if (moveState.KeyW) movement.add(forward);
+  if (moveState.KeyS) movement.sub(forward);
+  if (moveState.KeyD) movement.add(right);
+  if (moveState.KeyA) movement.sub(right);
+  if (moveState.KeyE) movement.y += 0.9;
+  if (moveState.KeyQ) movement.y -= 0.9;
+
+  if (movement.lengthSq() > 0) {
+    movement.normalize().multiplyScalar(speed);
+    orbitState.target.add(movement);
+    orbitState.target.y = clamp(orbitState.target.y, 0.55, 2.4);
+  }
+}
+
+function updateWallOcclusion() {
+  if (occlusionWalls.length === 0) return;
+  const direction = orbitState.target.clone().sub(camera.position);
+  const distance = direction.length();
+  if (distance < 0.001) return;
+
+  direction.normalize();
+  wallOcclusionRaycaster.set(camera.position, direction);
+  wallOcclusionRaycaster.far = distance;
+  const hits = wallOcclusionRaycaster.intersectObjects(occlusionWalls, false);
+  const occludedSet = new Set(hits.map((hit) => hit.object));
+
+  occlusionWalls.forEach((wall) => {
+    const mat = wall.material;
+    if (!mat) return;
+    const targetOpacity = occludedSet.has(wall) ? 0.04 : 1;
+    mat.opacity += (targetOpacity - mat.opacity) * 0.18;
+    mat.depthWrite = mat.opacity > 0.2;
+  });
+}
+
+function buildShowcase() {
+  const stage = new THREE.Group();
+  scene.add(stage);
+  occlusionWalls.length = 0;
+  const textures = getSceneTextureSet();
+  surfaceTargets.length = 0;
+
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(24, 18),
+    new THREE.MeshStandardMaterial({
+      color: 0x4e3b2c,
+      roughness: 0.85,
+      metalness: 0.04,
+      map: textures.woodMap,
+      bumpMap: textures.fineNoise,
+      bumpScale: 0.03,
+      roughnessMap: textures.coarseNoise
+    })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  stage.add(floor);
+
+  const rug = new THREE.Mesh(
+    new THREE.CylinderGeometry(4.6, 4.5, 0.065, 96, 1, false),
+    new THREE.MeshPhysicalMaterial({
+      color: 0x8e7c68,
+      roughness: 0.96,
+      metalness: 0,
+      map: textures.rugMap,
+      bumpMap: textures.fineNoise,
+      bumpScale: 0.028,
+      sheen: 0.95,
+      sheenRoughness: 0.88,
+      sheenColor: new THREE.Color(0xa48d75)
+    })
+  );
+  rug.position.y = 0.033;
+  rug.receiveShadow = true;
+  stage.add(rug);
+
+  const backWall = new THREE.Mesh(
+    new THREE.BoxGeometry(16.8, 5.2, 0.24),
+    new THREE.MeshStandardMaterial({
+      color: 0xb7a896,
+      roughness: 0.84,
+      metalness: 0.02,
+      map: textures.plasterMap,
+      bumpMap: textures.fineNoise,
+      bumpScale: 0.01,
+      transparent: true,
+      opacity: 1
+    })
+  );
+  backWall.position.set(0, 2.55, -6.2);
+  backWall.receiveShadow = true;
+  stage.add(backWall);
+  occlusionWalls.push(backWall);
+
+  const leftWall = new THREE.Mesh(
+    new THREE.BoxGeometry(0.24, 5.2, 13.6),
+    new THREE.MeshStandardMaterial({
+      color: 0x2b2621,
+      roughness: 0.88,
+      metalness: 0.02,
+      map: textures.plasterMap,
+      bumpMap: textures.fineNoise,
+      bumpScale: 0.006,
+      transparent: true,
+      opacity: 1
+    })
+  );
+  leftWall.position.set(-8.3, 2.55, -0.8);
+  leftWall.receiveShadow = true;
+  stage.add(leftWall);
+  occlusionWalls.push(leftWall);
+
+  const rightWall = new THREE.Mesh(
+    new THREE.BoxGeometry(0.24, 5.2, 13.6),
+    new THREE.MeshStandardMaterial({
+      color: 0x25221e,
+      roughness: 0.86,
+      metalness: 0.02,
+      map: textures.plasterMap,
+      bumpMap: textures.fineNoise,
+      bumpScale: 0.006,
+      transparent: true,
+      opacity: 1
+    })
+  );
+  rightWall.position.set(8.3, 2.55, -0.8);
+  rightWall.receiveShadow = true;
+  stage.add(rightWall);
+  occlusionWalls.push(rightWall);
+
+  const ceiling = new THREE.Mesh(
+    new THREE.PlaneGeometry(16.8, 13.6),
+    new THREE.MeshStandardMaterial({
+      color: 0x6c6257,
+      roughness: 0.9,
+      metalness: 0.03,
+      map: textures.plasterMap,
+      bumpMap: textures.fineNoise,
+      bumpScale: 0.005,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 1
+    })
+  );
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.y = 5.15;
+  stage.add(ceiling);
+  occlusionWalls.push(ceiling);
+
+  const shelfFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(2.6, 2, 0.42),
+    new THREE.MeshStandardMaterial({ color: 0x2c1f18, roughness: 0.72, metalness: 0.08 })
+  );
+  shelfFrame.position.set(3.1, 2.5, -6.03);
+  shelfFrame.castShadow = true;
+  shelfFrame.receiveShadow = true;
+  stage.add(shelfFrame);
+
+  const shelfInner = new THREE.Mesh(
+    new THREE.BoxGeometry(2.34, 1.74, 0.28),
+    new THREE.MeshStandardMaterial({ color: 0x1a1511, roughness: 0.9, metalness: 0.03 })
+  );
+  shelfInner.position.set(3.1, 2.5, -5.95);
+  stage.add(shelfInner);
+
+  [-0.55, 0, 0.55].forEach((yOffset) => {
+    const plank = new THREE.Mesh(
+      new THREE.BoxGeometry(2.3, 0.05, 0.3),
+      new THREE.MeshStandardMaterial({ color: 0x3a2b21, roughness: 0.66, metalness: 0.1 })
+    );
+    plank.position.set(3.1, 2.5 + yOffset, -5.92);
+    plank.castShadow = true;
+    stage.add(plank);
+  });
+
+  const artFrame = new THREE.Mesh(
+    new THREE.BoxGeometry(2.8, 1.5, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0x31261f, roughness: 0.58, metalness: 0.16 })
+  );
+  artFrame.position.set(-2.7, 2.65, -6.05);
+  artFrame.castShadow = true;
+  stage.add(artFrame);
+  artFrame.userData.materialKey = "wood";
+  surfaceTargets.push(artFrame);
+  window._artFrameMesh = artFrame;
+
+  const artCanvas = new THREE.Mesh(
+    new THREE.PlaneGeometry(2.48, 1.2),
+    new THREE.MeshStandardMaterial({
+      color: 0x1a1410,
+      roughness: 0.6,
+      metalness: 0.04,
+      emissive: new THREE.Color(0x0a0806),
+      emissiveIntensity: 0.5
+    })
+  );
+  artCanvas.position.set(-2.7, 2.65, -5.99);
+  stage.add(artCanvas);
+  artCanvas.userData.materialKey = "paper";
+  artCanvas.userData.isArtCanvas = true;
+  surfaceTargets.push(artCanvas);
+  window._artCanvasMesh = artCanvas;
+
+  const sideTable = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.34, 0.36, 0.58, 24),
+    new THREE.MeshStandardMaterial({ color: 0x4e3a2e, roughness: 0.62, metalness: 0.08 })
+  );
+  sideTable.position.set(-4.55, 0.29, -1.2);
+  sideTable.castShadow = true;
+  sideTable.receiveShadow = true;
+  stage.add(sideTable);
+
+  const tableVase = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.06, 0.24, 16),
+    new THREE.MeshStandardMaterial({ color: 0xc7beb0, roughness: 0.42, metalness: 0.08 })
+  );
+  tableVase.position.set(-4.55, 0.72, -1.2);
+  tableVase.castShadow = true;
+  stage.add(tableVase);
+
+  const plantPot = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.2, 0.16, 0.3, 20),
+    new THREE.MeshStandardMaterial({ color: 0x5c4534, roughness: 0.74, metalness: 0.06 })
+  );
+  plantPot.position.set(6.2, 0.17, -3.9);
+  plantPot.castShadow = true;
+  plantPot.receiveShadow = true;
+  stage.add(plantPot);
+
+  for (let i = 0; i < 8; i += 1) {
+    const leaf = new THREE.Mesh(
+      new THREE.SphereGeometry(0.11, 12, 10),
+      new THREE.MeshStandardMaterial({ color: 0x4a6b50, roughness: 0.9, metalness: 0.02 })
+    );
+    // const angle = i / 8 * Math.PI * 2;
+    // leaf.position.set(
+    //   6.2 + Math.cos(angle) * 0.18,
+    //   0.44 + (i % 2) * 0.08,
+    //   -3.9 + Math.sin(angle) * 0.15
+    // );
+    const layoutPositions = [
+    new THREE.Vector3(-10,0.03,-1.6),
+    new THREE.Vector3(-1.4,0.03, 1.9),
+    new THREE.Vector3( 0.8,0.03,-2.1),
+    new THREE.Vector3( 2.6,0.03,-0.7),
+    new THREE.Vector3( 2.1,0.03, 1.8),
+    new THREE.Vector3(-2.3,0.03, 0.6),
+    new THREE.Vector3(-0.4,0.03, 2.5),
+    new THREE.Vector3( 1.6,0.03, 0.9),
+    new THREE.Vector3( 0.2,0.03,-0.6)
+    ];
+    const position = layoutPositions[i];
+    leaf.scale.set(1.2, 0.8, 1);
+    leaf.castShadow = true;
+    stage.add(leaf);
+  }
+
+  const sofaGroup = new THREE.Group();
+  sofaGroup.position.set(0, 0, -3.1);
+  stage.add(sofaGroup);
+
+  const sofaMat = new THREE.MeshPhysicalMaterial({
+    color: 0xd9c7a8,
+    roughness: 0.94,
+    metalness: 0.02,
+    map: textures.fabricMap,
+    bumpMap: textures.fineNoise,
+    bumpScale: 0.028,
+    roughnessMap: textures.coarseNoise,
+    sheen: 1,
+    sheenRoughness: 0.9,
+    sheenColor: new THREE.Color(0xe5d8c4)
+  });
+  const sofaSeat = new THREE.Mesh(makeRoundedBox(3.7, 0.5, 1.22, 0.12, 7), sofaMat);
+  sofaSeat.position.set(0, 0.38, 0);
+  sofaSeat.castShadow = true;
+  sofaSeat.receiveShadow = true;
+  sofaGroup.add(sofaSeat);
+  sofaSeat.userData.materialKey = "fabric";
+  surfaceTargets.push(sofaSeat);
+
+  const sofaBack = new THREE.Mesh(makeRoundedBox(3.7, 0.72, 0.44, 0.11, 7), sofaMat);
+  sofaBack.position.set(0, 0.78, -0.48);
+  sofaBack.castShadow = true;
+  sofaGroup.add(sofaBack);
+  sofaBack.userData.materialKey = "fabric";
+  surfaceTargets.push(sofaBack);
+
+  const sofaArmL = new THREE.Mesh(makeRoundedBox(0.58, 0.62, 1.18, 0.12, 7), sofaMat);
+  sofaArmL.position.set(-1.72, 0.58, -0.01);
+  sofaArmL.castShadow = true;
+  sofaGroup.add(sofaArmL);
+  sofaArmL.userData.materialKey = "fabric";
+  surfaceTargets.push(sofaArmL);
+
+  const sofaArmR = sofaArmL.clone();
+  sofaArmR.position.x = 1.66;
+  sofaGroup.add(sofaArmR);
+  sofaArmR.userData.materialKey = "fabric";
+  surfaceTargets.push(sofaArmR);
+
+  [-1.45, 1.45].forEach((x) => {
+    [-0.42, 0.42].forEach((z) => {
+      const sofaLeg = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.055, 0.16, 14),
+        new THREE.MeshStandardMaterial({ color: 0x5a4635, roughness: 0.62, metalness: 0.08 })
+      );
+      sofaLeg.position.set(x, 0.08, z);
+      sofaLeg.castShadow = true;
+      sofaLeg.receiveShadow = true;
+      sofaGroup.add(sofaLeg);
+    });
+  });
+
+  const tableTop = new THREE.Mesh(
+    new THREE.CylinderGeometry(1.68, 1.78, 0.12, 56),
+    new THREE.MeshStandardMaterial({
+      color: 0x5a3e2d,
+      roughness: 0.53,
+      metalness: 0.08,
+      map: textures.woodMap,
+      bumpMap: textures.fineNoise,
+      bumpScale: 0.018,
+      roughnessMap: textures.coarseNoise
+    })
+  );
+  tableTop.position.y = 0.54;
+  tableTop.castShadow = true;
+  tableTop.receiveShadow = true;
+  stage.add(tableTop);
+
+  [-0.95, 0, 0.95].forEach((x) => {
+    const leg = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.18, 0.2, 0.38, 22),
+      new THREE.MeshStandardMaterial({
+        color: 0x4a3426,
+        roughness: 0.64,
+        metalness: 0.08,
+        map: textures.woodMap,
+        bumpMap: textures.fineNoise,
+        bumpScale: 0.012
+      })
+    );
+    leg.position.set(x, 0.23, 0.05);
+    leg.castShadow = true;
+    leg.receiveShadow = true;
+    stage.add(leg);
+  });
+
+  pedestalTop = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 0.03, 0.88),
+    new THREE.MeshStandardMaterial({
+      color: materialProfiles[currentMaterial].accent,
+      roughness: 0.38,
+      metalness: 0.08,
+      map: textures.woodMap,
+      bumpMap: textures.fineNoise,
+      bumpScale: 0.01
+    })
+  );
+  // pedestalTop.position.set(0, 0.62, 0.02);
+  // pedestalTop.castShadow = true;
+  // pedestalTop.receiveShadow = true;
+  // stage.add(pedestalTop);
+
+  const lampPole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.018, 0.018, 1.9, 18),
+    new THREE.MeshStandardMaterial({ color: 0x9f8b6b, roughness: 0.3, metalness: 0.6 })
+  );
+  lampPole.position.set(5.7, 0.95, -1.4);
+  lampPole.castShadow = true;
+  stage.add(lampPole);
+
+  const lampHead = new THREE.Mesh(
+    new THREE.ConeGeometry(0.24, 0.45, 26, 1, true),
+    new THREE.MeshStandardMaterial({ color: 0xd6c2a5, roughness: 0.7, metalness: 0.08, side: THREE.DoubleSide })
+  );
+  lampHead.position.set(5.52, 1.75, -1.35);
+  lampHead.rotation.z = Math.PI * 0.35;
+  lampHead.castShadow = true;
+  stage.add(lampHead);
+
+  frictionPad = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.95, 1.12),
+    new THREE.MeshPhysicalMaterial({
+      color: materialProfiles[currentMaterial].color,
+      roughness: materialProfiles[currentMaterial].visual.roughness,
+      metalness: materialProfiles[currentMaterial].visual.metalness,
+      clearcoat: materialProfiles[currentMaterial].visual.clearcoat,
+      transmission: materialProfiles[currentMaterial].visual.transmission,
+      thickness: materialProfiles[currentMaterial].visual.thickness,
+      bumpMap: textures.fineNoise,
+      bumpScale: 0.005,
+      side: THREE.DoubleSide,
+      envMap: scene.environment,
+      envMapIntensity: 1.25
+    })
+  );
+  frictionPad.rotation.x = -Math.PI / 2;
+  frictionPad.position.set(0, 0.637, 0.02);
+  stage.add(frictionPad);
+  surfaceTargets.push(frictionPad);
+
+  const sampleRadius = 2.85;
+  const arcStart = Math.PI * 0.12;
+  const arcEnd = Math.PI * 0.88;
+
+  sampleKeys.forEach((key, index) => {
+    const profile = materialProfiles[key];
+    const t = sampleKeys.length === 1 ? 0.5 : index / (sampleKeys.length - 1);
+    const angle = arcStart + (arcEnd - arcStart) * t;
+    const position = new THREE.Vector3(
+      Math.cos(angle) * sampleRadius,
+      0.03,
+      Math.sin(angle) * sampleRadius + 0.12
+    );
+    const group = new THREE.Group();
+    group.position.copy(position);
+    group.userData.baseY = position.y;
+    stage.add(group);
+    sampleGroups.set(key, group);
+
+    // const plinth = new THREE.Mesh(
+    //   new THREE.CylinderGeometry(0.32, 0.36, 0.2, 32),
+    //   new THREE.MeshStandardMaterial({ color: 0xf6f2ea, roughness: 0.84, metalness: 0.03 })
+    // );
+    // plinth.position.y = 0.1;
+    // plinth.castShadow = true;
+    // plinth.receiveShadow = true;
+    // group.add(plinth);
+
+    const halo = new THREE.Mesh(
+      new THREE.RingGeometry(0.26, 0.34, 32),
+      new THREE.MeshBasicMaterial({ color: profile.accent, transparent: true, opacity: 0, side: THREE.DoubleSide })
+    );
+    halo.rotation.x = -Math.PI / 2;
+    halo.position.y = 0.202;
+    group.add(halo);
+    group.userData.halo = halo;
+
+    const sampleModel = createFurnitureSample(profile, key);
+    sampleModel.position.y = 0.02;
+    group.add(sampleModel);
+    group.userData.sampleMesh = sampleModel.userData.animatedMesh;
+    group.userData.sampleRoot = sampleModel;
+    group.userData.baseScale = new THREE.Vector3(1, 1, 1);
+
+    const hitbox = new THREE.Mesh(
+      new THREE.SphereGeometry(0.36, 18, 18),
+      new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
+    );
+    hitbox.position.y = 0.24;
+    hitbox.userData.materialKey = key;
+    group.add(hitbox);
+    sampleHitboxes.push(hitbox);
+  });
+}
+
+function updateVirtualRaycast(cursorState) {
+  updatePointerNdc(cursorState.currentX, cursorState.currentY);
+  raycaster.setFromCamera(pointer, camera);
+
+  if (orbitState.dragging) {
+    hoveredSampleKey = null;
+    interactionState.onPad = false;
+    interactionState.surfaceMaterialKey = null;
+    interactionState.activeSurfaceMesh = null;
+    return;
+  }
+
+  const sampleHits = raycaster.intersectObjects(sampleHitboxes, false);
+  hoveredSampleKey = sampleHits.length > 0 ? sampleHits[0].object.userData.materialKey : null;
+
+  const surfaceHits = raycaster.intersectObjects(surfaceTargets, false);
+  const hit = surfaceHits.length > 0 ? surfaceHits[0].object : null;
+  interactionState.onPad = Boolean(hit);
+  interactionState.activeSurfaceMesh = hit;
+  if (hit) {
+    interactionState.surfaceMaterialKey = hit === frictionPad ? currentMaterial : (hit.userData.materialKey || currentMaterial);
+  } else {
+    interactionState.surfaceMaterialKey = null;
+  }
+}
+
+function detectActualPadContact() {
+  updatePointerNdc(pointerState.x, pointerState.y);
+  raycaster.setFromCamera(pointer, camera);
+  const surfaceHits = raycaster.intersectObjects(surfaceTargets, false);
+  const hit = surfaceHits.length > 0 ? surfaceHits[0].object : null;
+  interactionState.activeSurfaceMesh = hit;
+  if (hit) {
+    interactionState.surfaceMaterialKey = hit === frictionPad ? currentMaterial : (hit.userData.materialKey || currentMaterial);
+  }
+  return surfaceHits.length > 0;
+}
+
+function updateSurfaceContactState(nowMs) {
+  if (orbitState.dragging) {
+    interactionState.surfaceActive = false;
+    interactionState.surfaceHoldUntil = 0;
+    return;
+  }
+
+  void nowMs;
+  const hasContact = interactionState.onPad;
+  if (hasContact) {
+    interactionState.surfaceActive = true;
+    interactionState.surfaceHoldUntil = performance.now() + SURFACE_EXIT_HYSTERESIS_MS;
+    return;
+  }
+
+  interactionState.surfaceActive = performance.now() <= interactionState.surfaceHoldUntil;
+}
+
+function syncCursorMaterialMode(surfaceActive) {
+  const surfaceKey = interactionState.surfaceMaterialKey && materialProfiles[interactionState.surfaceMaterialKey]
+    ? interactionState.surfaceMaterialKey
+    : currentMaterial;
+  const nextProfileKey = surfaceActive ? surfaceKey : "__free__";
+  if (pointerState.activeProfileKey === nextProfileKey) return;
+
+  pointerState.activeProfileKey = nextProfileKey;
+  if (!materialCursor) return;
+
+  const baseProfile = surfaceActive ? materialProfiles[surfaceKey].cursor : freeCursorProfile;
+  materialCursor.setMaterial(buildCoordinatedCursorProfile(baseProfile));
+  setCursorAccentForMaterialKey(surfaceActive ? surfaceKey : currentMaterial);
+}
+
+function animateSamples() {
+  sampleGroups.forEach((group, key) => {
+    const profile = materialProfiles[key];
+    const isHovered = key === hoveredSampleKey;
+    const isSelected = key === currentMaterial;
+    const targetLift = group.userData.baseY + (isHovered ? 0.035 : 0) + (isSelected ? 0.02 : 0);
+    const targetScale = isSelected ? 1.12 : isHovered ? 1.05 : 1;
+    const targetHalo = isSelected ? 0.96 : isHovered ? 0.42 : 0;
+    const mesh = group.userData.sampleMesh;
+    const sampleRoot = group.userData.sampleRoot;
+
+    group.position.y += (targetLift - group.position.y) * 0.18;
+
+    sampleScaleTarget.copy(group.userData.baseScale).multiplyScalar(targetScale);
+    if (sampleRoot) sampleRoot.scale.lerp(sampleScaleTarget, 0.18);
+    //if (sampleRoot) sampleRoot.rotation.y += 0.004 + (isHovered || isSelected ? 0.0025 : 0);
+    if (mesh && mesh.material) {
+      mesh.material.emissiveIntensity += ((isSelected ? 0.14 : isHovered ? 0.09 : 0.04) - mesh.material.emissiveIntensity) * 0.14;
+      mesh.material.color.lerp(new THREE.Color(profile.color), 0.16);
+    }
+    group.userData.halo.material.opacity += (targetHalo - group.userData.halo.material.opacity) * 0.18;
+  });
+}
+
+function animatePad() {
+  const cursorState = materialCursor.getState();
+  const speedNorm = clamp(cursorState.virtualSpeed / materialProfiles[currentMaterial].audioMotion.speedReference, 0, 1);
+  const onFrictionPad = interactionState.activeSurfaceMesh === frictionPad;
+  interactionState.padScaleTarget = onFrictionPad
+    ? 1 - clamp(speedNorm * 0.03, 0, 0.03)
+    : 1;
+
+  frictionPad.scale.x += (interactionState.padScaleTarget - frictionPad.scale.x) * 0.18;
+  frictionPad.scale.y = 1;
+  frictionPad.scale.z += (interactionState.padScaleTarget - frictionPad.scale.z) * 0.18;
+}
+
+function updateActiveAudioMaterial() {
+  const desiredKey = interactionState.surfaceActive
+    ? (interactionState.surfaceMaterialKey || currentMaterial)
+    : currentMaterial;
+
+  if (desiredKey === activeAudioMaterialKey) return;
+  activeAudioMaterialKey = desiredKey;
+
+  if (hapticAudio && audioState.isUnlocked) {
+    hapticAudio.setMaterial(desiredKey);
+  }
+}
+
+function updateCursorVisualState() {
+  cursorEl.classList.toggle("is-dragging", orbitState.dragging);
+  cursorEl.classList.toggle("is-over-pad", interactionState.onPad);
+  cursorEl.classList.toggle("is-hovering", Boolean(hoveredSampleKey));
+}
+
+function updateSampleTooltip(cursorState) {
+  if (!sampleTooltipEl || !cursorState) return;
+  if (!hoveredSampleKey || !materialProfiles[hoveredSampleKey]) {
+    sampleTooltipEl.classList.remove("show");
+    return;
+  }
+
+  sampleTooltipEl.textContent = materialProfiles[hoveredSampleKey].label;
+  sampleTooltipEl.style.left = `${cursorState.currentX}px`;
+  sampleTooltipEl.style.top = `${cursorState.currentY - 10}px`;
+  sampleTooltipEl.classList.add("show");
+}
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = Math.min(clock.getDelta(), 0.05);
+  const nowMs = performance.now();
+
+  updateKeyboardCamera(delta);
+  updateCamera();
+  updateWallOcclusion();
+  materialCursor.update(delta);
+
+  const cursorState = materialCursor.getState();
+  interactionState.orbitDragging = orbitState.dragging;
+  updateVirtualRaycast(cursorState);
+  updateSurfaceContactState(nowMs);
+  syncCursorMaterialMode(interactionState.surfaceActive);
+  updateActiveAudioMaterial();
+
+  if (hapticAudio && audioState.isUnlocked) {
+    hapticAudio.update(delta, cursorState, interactionState);
+  }
+
+  animatePad();
+  animateSamples();
+  updateCursorVisualState();
+  updateSampleTooltip(cursorState);
+  updateAudioMonitor(cursorState);
+  renderer.render(scene, camera);
+}
+
+function initScene() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x17130f);
+  scene.fog = new THREE.Fog(0x17130f, 9, 30);
+
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  renderer.physicallyCorrectLights = true;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 100);
+  updateCamera();
+
+  const hemi = new THREE.HemisphereLight(0xb9c4d2, 0x2c241b, 0.46);
+  scene.add(hemi);
+
+  const keyLight = new THREE.DirectionalLight(0xffe3be, 1.42);
+  keyLight.position.set(3.8, 4.6, 1.2);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(2048, 2048);
+  keyLight.shadow.bias = -0.00018;
+  keyLight.shadow.normalBias = 0.018;
+  keyLight.shadow.radius = 2;
+  keyLight.shadow.camera.left = -7;
+  keyLight.shadow.camera.right = 7;
+  keyLight.shadow.camera.top = 6;
+  keyLight.shadow.camera.bottom = -6;
+  scene.add(keyLight);
+
+  const fillLight = new THREE.DirectionalLight(0x9fb1c7, 0.42);
+  fillLight.position.set(-4.6, 2.9, 3.6);
+  scene.add(fillLight);
+
+  const practicalLamp = new THREE.SpotLight(0xffd7ad, 2.2, 11, Math.PI / 4.5, 0.34, 1.35);
+  practicalLamp.position.set(5.52, 1.8, -1.32);
+  practicalLamp.target.position.set(3.2, 0.2, 0.1);
+  practicalLamp.castShadow = true;
+  practicalLamp.shadow.mapSize.set(1024, 1024);
+  practicalLamp.shadow.bias = -0.00012;
+  practicalLamp.shadow.normalBias = 0.02;
+  practicalLamp.shadow.radius = 2;
+  scene.add(practicalLamp);
+  scene.add(practicalLamp.target);
+
+  const ambientBounce = new THREE.PointLight(0xffc48b, 0.62, 7.5);
+  ambientBounce.position.set(0.4, 0.75, 0.1);
+  scene.add(ambientBounce);
+
+  loadLebomboEnvironment();
+  buildShowcase();
+  updatePadAppearance();
+  updateCursorAccent();
+  materialCursor = new MaterialCursor({
+    element: cursorEl,
+    initialX: window.innerWidth * 0.5,
+    initialY: window.innerHeight * 0.58
+  });
+  pointerState.x = window.innerWidth * 0.5;
+  pointerState.y = window.innerHeight * 0.58;
+  pointerState.activeProfileKey = "__free__";
+  materialCursor.setMaterial(buildCoordinatedCursorProfile(freeCursorProfile));
+  clock.start();
+  animate();
+}
+
+window.addEventListener("mousemove", (event) => {
+  pointerState.x = event.clientX;
+  pointerState.y = event.clientY;
+  materialCursor.setTarget(event.clientX, event.clientY);
+
+  if (!orbitState.dragging) return;
+
+  const dx = event.clientX - orbitState.lastX;
+  const dy = event.clientY - orbitState.lastY;
+  orbitState.yaw -= dx * 0.006;
+  orbitState.pitch = clamp(orbitState.pitch - dy * 0.0055, -0.12, 1.12);
+  orbitState.lastX = event.clientX;
+  orbitState.lastY = event.clientY;
+});
+
+window.addEventListener("mousedown", (event) => {
+  if (event.button !== 0) return;
+  if (isUiInteractionTarget(event.target)) {
+    orbitState.dragging = false;
+    return;
+  }
+
+  if (hoveredSampleKey) {
+    switchMaterial(hoveredSampleKey, false);
+    return;
+  }
+
+  orbitState.dragging = true;
+  orbitState.lastX = event.clientX;
+  orbitState.lastY = event.clientY;
+});
+
+window.addEventListener("mouseup", () => {
+  orbitState.dragging = false;
+});
+
+window.addEventListener("mouseleave", () => {
+  orbitState.dragging = false;
+  hoveredSampleKey = null;
+  if (sampleTooltipEl) sampleTooltipEl.classList.remove("show");
+  interactionState.onPad = false;
+  interactionState.surfaceActive = false;
+  interactionState.surfaceHoldUntil = 0;
+  interactionState.padScaleTarget = 1;
+  pointerState.x = window.innerWidth * 0.5;
+  pointerState.y = window.innerHeight * 0.58;
+  pointerState.activeProfileKey = "__free__";
+  if (materialCursor) {
+    materialCursor.reset(window.innerWidth * 0.5, window.innerHeight * 0.58);
+    materialCursor.setMaterial(buildCoordinatedCursorProfile(freeCursorProfile));
+  }
+  if (hapticAudio) {
+    hapticAudio.fadeOut(0.05);
+  }
+});
+
+window.addEventListener("blur", () => {
+  orbitState.dragging = false;
+  hoveredSampleKey = null;
+  if (sampleTooltipEl) sampleTooltipEl.classList.remove("show");
+  interactionState.onPad = false;
+  interactionState.surfaceActive = false;
+  interactionState.surfaceHoldUntil = 0;
+  interactionState.padScaleTarget = 1;
+  Object.keys(moveState).forEach((key) => {
+    moveState[key] = false;
+  });
+  if (hapticAudio) {
+    hapticAudio.reset();
+  }
+});
+
+window.addEventListener("wheel", (event) => {
+  orbitState.radius = clamp(orbitState.radius + event.deltaY * 0.0045, orbitState.minRadius, orbitState.maxRadius);
+});
+
+window.addEventListener("resize", () => {
+  if (!renderer || !camera) return;
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  if (materialCursor) {
+    materialCursor.reset(window.innerWidth * 0.5, window.innerHeight * 0.58);
+    materialCursor.setMaterial(buildCoordinatedCursorProfile(freeCursorProfile));
+  }
+  pointerState.x = window.innerWidth * 0.5;
+  pointerState.y = window.innerHeight * 0.58;
+  pointerState.activeProfileKey = "__free__";
+  updateAudioMonitor(materialCursor ? materialCursor.getState() : null);
+});
+
+startButton.addEventListener("click", () => {
+  unlockExperience();
+});
+
+bindSensationControls();
+bindPanelMinimizeToggles();
+bindAdsrCanvasEditor();
+updateAudioMonitor();
+initScene();
+
+// ─────────────────────────────────────────────────
+//  PHOTO FRAME — 3-STATE SYSTEM
+//  [empty]  : upload icon always visible on frame
+//  [filled] : image shown, hover → color sound,
+//             top-bar with re-upload / delete
+// ─────────────────────────────────────────────────
+(function setupPhotoFrame() {
+
+  /* ════════════════════════════════════════════════
+     STATE
+  ════════════════════════════════════════════════ */
+  let hasImage = false;
+  let offscreenCanvas = null, offscreenCtx = null;
+
+  /* ════════════════════════════════════════════════
+     SCREEN-SPACE PROJECTION — maps 3D frame → CSS rect
+  ════════════════════════════════════════════════ */
+  const FRAME_W = 2.8, FRAME_H = 1.5;
+  const FRAME_POS = new THREE.Vector3(-2.7, 2.65, -6.05);
+
+  // Canvas inner corners (for upload icon overlay)
+  const CANVAS_W = 2.48, CANVAS_H = 1.2;
+  const canvasCorners = [
+    new THREE.Vector3(FRAME_POS.x - CANVAS_W/2, FRAME_POS.y - CANVAS_H/2, FRAME_POS.z + 0.06),
+    new THREE.Vector3(FRAME_POS.x + CANVAS_W/2, FRAME_POS.y - CANVAS_H/2, FRAME_POS.z + 0.06),
+    new THREE.Vector3(FRAME_POS.x + CANVAS_W/2, FRAME_POS.y + CANVAS_H/2, FRAME_POS.z + 0.06),
+    new THREE.Vector3(FRAME_POS.x - CANVAS_W/2, FRAME_POS.y + CANVAS_H/2, FRAME_POS.z + 0.06),
+  ];
+
+  // Full frame corners (for top-bar)
+  const frameCorners = [
+    new THREE.Vector3(FRAME_POS.x - FRAME_W/2, FRAME_POS.y - FRAME_H/2, FRAME_POS.z),
+    new THREE.Vector3(FRAME_POS.x + FRAME_W/2, FRAME_POS.y - FRAME_H/2, FRAME_POS.z),
+    new THREE.Vector3(FRAME_POS.x + FRAME_W/2, FRAME_POS.y + FRAME_H/2, FRAME_POS.z),
+    new THREE.Vector3(FRAME_POS.x - FRAME_W/2, FRAME_POS.y + FRAME_H/2, FRAME_POS.z),
+  ];
+
+  function project(v3) {
+    const v = v3.clone().project(camera);
+    return { x: (v.x*0.5+0.5)*window.innerWidth, y: (-v.y*0.5+0.5)*window.innerHeight };
+  }
+
+  function getBoundingRect(corners) {
+    const pts = corners.map(project);
+    const xs = pts.map(p=>p.x), ys = pts.map(p=>p.y);
+    return { left: Math.min(...xs), top: Math.min(...ys),
+             width: Math.max(...xs)-Math.min(...xs),
+             height: Math.max(...ys)-Math.min(...ys) };
+  }
+
+  /* ════════════════════════════════════════════════
+     DOM — UPLOAD ICON OVERLAY (always visible on canvas)
+  ════════════════════════════════════════════════ */
+  const uploadOverlay = document.createElement("div");
+  uploadOverlay.id = "frameUploadOverlay";
+  uploadOverlay.style.cssText = `
+    position:fixed; z-index:24; pointer-events:auto;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; opacity:0;
+    font-family:"SF Pro Text","Helvetica Neue","Segoe UI",Arial,sans-serif;
+    transition:opacity 180ms ease;
+  `;
+  uploadOverlay.innerHTML = `
+    <label id="frameUploadHotspot" style="
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:6px; width:100%; height:100%; cursor:pointer;
+      border-radius:4px;
+    ">
+      <div id="uploadIconWrap" style="
+        width:52px; height:52px; border-radius:50%;
+        display:flex; align-items:center; justify-content:center;
+        background:rgba(255,255,255,0.12);
+        border:1.5px solid rgba(255,255,255,0.28);
+        box-shadow:0 6px 20px rgba(0,0,0,0.38);
+        backdrop-filter:blur(10px);
+        transition:transform 160ms ease, background 160ms ease;
+        font-size:22px; line-height:1;
+      ">🖼️</div>
+      <span style="
+        font-size:10px; font-weight:600; letter-spacing:.08em;
+        color:rgba(230,242,255,0.82); text-shadow:0 1px 6px rgba(0,0,0,0.7);
+        pointer-events:none;
+      ">上传图片</span>
+      <input type="file" id="frameFileInput" accept="image/*" style="display:none;">
+    </label>
+  `;
+  document.body.appendChild(uploadOverlay);
+
+  // Icon hover effect
+  const iconWrap = document.getElementById("uploadIconWrap");
+  const hotspot  = document.getElementById("frameUploadHotspot");
+  hotspot.addEventListener("mouseenter", () => {
+    iconWrap.style.transform = "scale(1.12)";
+    iconWrap.style.background = "rgba(255,255,255,0.22)";
+  });
+  hotspot.addEventListener("mouseleave", () => {
+    iconWrap.style.transform = "scale(1)";
+    iconWrap.style.background = "rgba(255,255,255,0.12)";
+  });
+
+  /* ════════════════════════════════════════════════
+     DOM — TOP-BAR (shown above frame when image exists)
+  ════════════════════════════════════════════════ */
+  const topBar = document.createElement("div");
+  topBar.id = "frameTopBar";
+  topBar.style.cssText = `
+    position:fixed; z-index:26; pointer-events:auto;
+    display:flex; align-items:center; gap:8px;
+    opacity:0; transition:opacity 200ms ease; pointer-events:none;
+    font-family:"SF Pro Text","Helvetica Neue","Segoe UI",Arial,sans-serif;
+  `;
+  topBar.innerHTML = `
+    <div style="
+      display:flex; align-items:center; gap:7px;
+      padding:5px 8px 5px 10px; border-radius:999px;
+      background:rgba(12,18,30,0.72);
+      border:1px solid rgba(255,255,255,0.16);
+      box-shadow:0 6px 22px rgba(0,0,0,0.45);
+      backdrop-filter:blur(14px);
+    ">
+      <span style="font-size:10px;color:rgba(180,210,255,0.7);font-weight:500;letter-spacing:.04em;margin-right:2px;">🎨 色彩音效模式</span>
+      <div style="width:1px;height:14px;background:rgba(255,255,255,0.15);"></div>
+      <label id="reuploadBtn" style="
+        display:flex; align-items:center; gap:4px; cursor:pointer;
+        padding:4px 10px; border-radius:999px; font-size:10px; font-weight:600;
+        color:#a8d4ff; letter-spacing:.04em;
+        background:rgba(80,140,255,0.18); border:1px solid rgba(100,160,255,0.28);
+        transition:background 120ms ease;
+      ">
+        ↑ 重新上传
+        <input type="file" id="reuploadFileInput" accept="image/*" style="display:none;">
+      </label>
+      <button id="deleteImageBtn" style="
+        display:flex; align-items:center; gap:4px; cursor:pointer;
+        padding:4px 10px; border-radius:999px; font-size:10px; font-weight:600;
+        color:#ffaaaa; letter-spacing:.04em;
+        background:rgba(200,60,60,0.2); border:1px solid rgba(255,100,100,0.28);
+        transition:background 120ms ease;
+      ">✕ 删除图片</button>
+    </div>
+    <div id="colorPip" style="
+      width:32px; height:32px; border-radius:50%;
+      background:#888; border:2px solid rgba(255,255,255,0.25);
+      box-shadow:0 3px 12px rgba(0,0,0,0.4);
+      transition:background 60ms linear;
+      flex-shrink:0;
+    "></div>
+  `;
+  document.body.appendChild(topBar);
+
+  const reuploadBtn    = document.getElementById("reuploadBtn");
+  const deleteImageBtn = document.getElementById("deleteImageBtn");
+  const colorPip       = document.getElementById("colorPip");
+  reuploadBtn.addEventListener("mouseenter", () => reuploadBtn.style.background = "rgba(80,140,255,0.3)");
+  reuploadBtn.addEventListener("mouseleave", () => reuploadBtn.style.background = "rgba(80,140,255,0.18)");
+  deleteImageBtn.addEventListener("mouseenter", () => deleteImageBtn.style.background = "rgba(200,60,60,0.34)");
+  deleteImageBtn.addEventListener("mouseleave", () => deleteImageBtn.style.background = "rgba(200,60,60,0.2)");
+
+  /* ════════════════════════════════════════════════
+     LAYOUT UPDATE — called every RAF
+  ════════════════════════════════════════════════ */
+  function updateLayout() {
+    if (!camera) return;
+
+    // Upload overlay covers the canvas area
+    const cr = getBoundingRect(canvasCorners);
+    uploadOverlay.style.left   = cr.left   + "px";
+    uploadOverlay.style.top    = cr.top    + "px";
+    uploadOverlay.style.width  = cr.width  + "px";
+    uploadOverlay.style.height = cr.height + "px";
+
+    // Top-bar sits above the full frame
+    const fr = getBoundingRect(frameCorners);
+    const BAR_H = 38;
+    topBar.style.left = fr.left + "px";
+    topBar.style.width = fr.width + "px";
+    topBar.style.top  = (fr.top - BAR_H - 8) + "px";
+  }
+
+  /* ════════════════════════════════════════════════
+     IMAGE LOADING
+  ════════════════════════════════════════════════ */
+  function loadImageToFrame(src) {
+    const mesh = window._artCanvasMesh;
+    if (!mesh) return;
+    const img = new Image();
+    img.onload = () => {
+      const tex = new THREE.Texture(img);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      if (mesh.material.map) mesh.material.map.dispose();
+      mesh.material.map = tex;
+      mesh.material.color.set(0xffffff);
+      mesh.material.emissive.set(0x000000);
+      mesh.material.emissiveIntensity = 0;
+      mesh.material.roughness = 0.45;
+      mesh.material.metalness = 0.01;
+      mesh.material.needsUpdate = true;
+
+      // Off-screen pixel sampler
+      const scale = Math.min(1, 256 / Math.max(img.width, img.height));
+      offscreenCanvas = document.createElement("canvas");
+      offscreenCanvas.width  = Math.round(img.width  * scale);
+      offscreenCanvas.height = Math.round(img.height * scale);
+      offscreenCtx = offscreenCanvas.getContext("2d");
+      offscreenCtx.drawImage(img, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+      hasImage = true;
+
+      // Switch state → image mode
+      uploadOverlay.style.opacity      = "0";
+      uploadOverlay.style.pointerEvents = "none";
+      topBar.style.opacity      = "1";
+      topBar.style.pointerEvents = "auto";
+    };
+    img.crossOrigin = "anonymous";
+    img.src = src;
+  }
+
+  function clearImage() {
+    const mesh = window._artCanvasMesh;
+    if (!mesh) return;
+    if (mesh.material.map) { mesh.material.map.dispose(); mesh.material.map = null; }
+    mesh.material.color.set(0x1a1410);
+    mesh.material.emissive.set(0x0a0806);
+    mesh.material.emissiveIntensity = 0.5;
+    mesh.material.roughness = 0.6;
+    mesh.material.metalness = 0.04;
+    mesh.material.needsUpdate = true;
+    hasImage = false;
+    offscreenCanvas = null; offscreenCtx = null;
+
+    // Switch state → empty mode
+    topBar.style.opacity      = "0";
+    topBar.style.pointerEvents = "none";
+    uploadOverlay.style.opacity      = "1";
+    uploadOverlay.style.pointerEvents = "auto";
+    colorPip.style.background = "#888";
+    teardownAudio();
+  }
+
+  /* ════════════════════════════════════════════════
+     FILE INPUTS
+  ════════════════════════════════════════════════ */
+  const fileInput      = document.getElementById("frameFileInput");
+  const reuploadInput  = document.getElementById("reuploadFileInput");
+
+  fileInput.addEventListener("change", (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    loadImageToFrame(URL.createObjectURL(f)); fileInput.value = "";
+  });
+  reuploadInput.addEventListener("change", (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    loadImageToFrame(URL.createObjectURL(f)); reuploadInput.value = "";
+  });
+  deleteImageBtn.addEventListener("click", clearImage);
+
+  /* ════════════════════════════════════════════════
+     PIXEL SAMPLER
+  ════════════════════════════════════════════════ */
+  function samplePixelAt(u, v) {
+    if (!offscreenCtx) return null;
+    const px = Math.round(u * (offscreenCanvas.width  - 1));
+    const py = Math.round(v * (offscreenCanvas.height - 1));
+    const d  = offscreenCtx.getImageData(px, py, 1, 1).data;
+    const r = d[0]/255, g = d[1]/255, b = d[2]/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    const brightness = (max+min)/2;
+    const saturation = max===min ? 0 : brightness < 0.5
+      ? (max-min)/(max+min) : (max-min)/(2-max-min);
+    let hue = 0;
+    if (max !== min) {
+      if      (max===r) hue = (g-b)/(max-min) + (g<b?6:0);
+      else if (max===g) hue = (b-r)/(max-min) + 2;
+      else              hue = (r-g)/(max-min) + 4;
+      hue /= 6;
+    }
+    return { r, g, b, brightness, saturation, hue };
+  }
+
+  /* ════════════════════════════════════════════════
+     AUDIO — color-mapped
+  ════════════════════════════════════════════════ */
+  let pAudioCtx=null, pNoiseSrc=null, pMainGain=null;
+  let pBpFilter=null, pLpFilter=null, pOsc=null, pOscGain=null;
+  let pConvolver=null, pReverbGain=null;
+  let pVelocity=0, pLastX=0, pLastY=0;
+
+  function ensureAudio() {
+    if (pAudioCtx && pAudioCtx.state!=="closed") return;
+    pAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  }
+
+  function buildAudioGraph() {
+    const ctx = pAudioCtx;
+    if (ctx.state==="suspended") ctx.resume();
+    if (pNoiseSrc) return;
+    const bufLen = ctx.sampleRate;
+    const noiseBuf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const nd = noiseBuf.getChannelData(0);
+    for (let i=0;i<bufLen;i++) nd[i]=Math.random()*2-1;
+    pNoiseSrc = ctx.createBufferSource();
+    pNoiseSrc.buffer = noiseBuf; pNoiseSrc.loop = true;
+
+    pBpFilter = ctx.createBiquadFilter();
+    pBpFilter.type="bandpass"; pBpFilter.frequency.value=2000; pBpFilter.Q.value=4;
+
+    pLpFilter = ctx.createBiquadFilter();
+    pLpFilter.type="lowpass"; pLpFilter.frequency.value=8000; pLpFilter.Q.value=0.7;
+
+    pOsc = ctx.createOscillator(); pOsc.type="sine"; pOsc.frequency.value=180;
+    pOscGain = ctx.createGain(); pOscGain.gain.value=0;
+
+    pMainGain = ctx.createGain(); pMainGain.gain.value=0;
+
+    pConvolver = ctx.createConvolver();
+    const irLen = Math.round(ctx.sampleRate*0.9);
+    const irBuf = ctx.createBuffer(2,irLen,ctx.sampleRate);
+    for (let ch=0;ch<2;ch++){
+      const d=irBuf.getChannelData(ch);
+      for (let i=0;i<irLen;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/irLen,2.2);
+    }
+    pConvolver.buffer=irBuf;
+    pReverbGain=ctx.createGain(); pReverbGain.gain.value=0.28;
+
+    pNoiseSrc.connect(pBpFilter); pBpFilter.connect(pLpFilter);
+    pLpFilter.connect(pMainGain);
+    pMainGain.connect(ctx.destination); pMainGain.connect(pConvolver);
+    pConvolver.connect(pReverbGain); pReverbGain.connect(ctx.destination);
+    pOsc.connect(pOscGain); pOscGain.connect(ctx.destination);
+    pNoiseSrc.start(); pOsc.start();
+  }
+
+  function teardownAudio() {
+    if (!pNoiseSrc) return;
+    const ctx=pAudioCtx, now=ctx.currentTime;
+    pMainGain.gain.cancelScheduledValues(now);
+    pMainGain.gain.setValueAtTime(pMainGain.gain.value,now);
+    pMainGain.gain.linearRampToValueAtTime(0,now+0.2);
+    pOscGain.gain.cancelScheduledValues(now);
+    pOscGain.gain.setValueAtTime(pOscGain.gain.value,now);
+    pOscGain.gain.linearRampToValueAtTime(0,now+0.2);
+    const ns=pNoiseSrc,osc=pOsc; pNoiseSrc=null; pOsc=null;
+    setTimeout(()=>{try{ns.stop();osc.stop();}catch(e){}},260);
+  }
+
+  function applyColorToAudio(pixel, speedNorm) {
+    if (!pMainGain||!pBpFilter||!pLpFilter||!pOsc) return;
+    const ctx=pAudioCtx, now=ctx.currentTime;
+    const Tf=0.04, Ts=0.12;
+
+    const vol = speedNorm * 0.42;
+    pMainGain.gain.cancelScheduledValues(now);
+    pMainGain.gain.setValueAtTime(pMainGain.gain.value,now);
+    pMainGain.gain.linearRampToValueAtTime(vol,now+Tf);
+
+    if (!pixel) return;
+    const {r,g,b,brightness,saturation,hue}=pixel;
+
+    const bpFreq = 200 + brightness*brightness*8800;
+    pBpFilter.frequency.cancelScheduledValues(now);
+    pBpFilter.frequency.setValueAtTime(pBpFilter.frequency.value,now);
+    pBpFilter.frequency.linearRampToValueAtTime(bpFreq,now+Ts);
+
+    const bpQ = 1.5 + saturation*10.5;
+    pBpFilter.Q.cancelScheduledValues(now);
+    pBpFilter.Q.setValueAtTime(pBpFilter.Q.value,now);
+    pBpFilter.Q.linearRampToValueAtTime(bpQ,now+Ts);
+
+    const lpFreq = 400 + brightness*15600;
+    pLpFilter.frequency.cancelScheduledValues(now);
+    pLpFilter.frequency.setValueAtTime(pLpFilter.frequency.value,now);
+    pLpFilter.frequency.linearRampToValueAtTime(lpFreq,now+Ts);
+
+    const oscF = 80 + hue*300;
+    pOsc.frequency.cancelScheduledValues(now);
+    pOsc.frequency.setValueAtTime(pOsc.frequency.value,now);
+    pOsc.frequency.linearRampToValueAtTime(oscF,now+Ts);
+
+    const oscAmt = saturation*(1-brightness)*0.06*speedNorm;
+    pOscGain.gain.cancelScheduledValues(now);
+    pOscGain.gain.setValueAtTime(pOscGain.gain.value,now);
+    pOscGain.gain.linearRampToValueAtTime(oscAmt,now+Tf);
+
+    const rvb = 0.08+(1-brightness)*0.36;
+    pReverbGain.gain.cancelScheduledValues(now);
+    pReverbGain.gain.setValueAtTime(pReverbGain.gain.value,now);
+    pReverbGain.gain.linearRampToValueAtTime(rvb,now+Ts);
+
+    // Color pip feedback
+    colorPip.style.background =
+      `hsl(${Math.round(hue*360)},${Math.round(saturation*100)}%,${Math.round(brightness*100)}%)`;
+  }
+
+  /* ════════════════════════════════════════════════
+     RAYCASTER
+  ════════════════════════════════════════════════ */
+  const pRaycaster = new THREE.Raycaster();
+  const pPointer   = new THREE.Vector2();
+  let isOverCanvas = false;
+
+  function castCanvas(e) {
+    pPointer.x = (e.clientX/window.innerWidth)*2-1;
+    pPointer.y = -(e.clientY/window.innerHeight)*2+1;
+    const mesh = window._artCanvasMesh;
+    if (!mesh||!camera) return null;
+    pRaycaster.setFromCamera(pPointer, camera);
+    const hits = pRaycaster.intersectObject(mesh, false);
+    return hits.length ? hits[0].uv : null;
+  }
+
+  /* ════════════════════════════════════════════════
+     MOUSE EVENTS
+  ════════════════════════════════════════════════ */
+  window.addEventListener("mousemove", (e) => {
+    updateLayout();
+    if (!hasImage) return;
+
+    const uv = castCanvas(e);
+    if (uv) {
+      if (!isOverCanvas) {
+        isOverCanvas = true;
+        ensureAudio(); buildAudioGraph();
+        pLastX=e.clientX; pLastY=e.clientY; pVelocity=0;
+      }
+      const vx=e.clientX-pLastX, vy=e.clientY-pLastY;
+      pLastX=e.clientX; pLastY=e.clientY;
+      pVelocity += (Math.sqrt(vx*vx+vy*vy) - pVelocity)*0.3;
+      const pixel = samplePixelAt(uv.x, 1-uv.y);
+      applyColorToAudio(pixel, Math.min(pVelocity/220,1));
+    } else if (isOverCanvas) {
+      isOverCanvas=false;
+      teardownAudio();
+    }
+  });
+
+  window.addEventListener("mouseleave", () => {
+    if (isOverCanvas) { isOverCanvas=false; teardownAudio(); }
+  });
+
+  /* ════════════════════════════════════════════════
+     RAF LOOP — keeps layout in sync as camera moves
+  ════════════════════════════════════════════════ */
+  (function rafLoop() {
+    requestAnimationFrame(rafLoop);
+    updateLayout();
+  })();
+
+  /* ════════════════════════════════════════════════
+     INITIAL STATE — show upload icon
+     (waits for experience-ready, then fades in)
+  ════════════════════════════════════════════════ */
+  const readyObs = new MutationObserver(() => {
+    if (document.body.classList.contains("experience-ready")) {
+      uploadOverlay.style.opacity = "1";
+      readyObs.disconnect();
+    }
+  });
+  readyObs.observe(document.body, { attributes:true, attributeFilter:["class"] });
+
+})();
+
+function shouldIgnoreMovementHotkey(event) {
+  const target = event.target;
+  if (!target || !target.closest) return false;
+  return Boolean(target.closest("input, textarea, select, button, [contenteditable='true']"));
+}
+
+window.addEventListener("keydown", (event) => {
+  if (shouldIgnoreMovementHotkey(event)) return;
+  if (!(event.code in moveState)) return;
+  moveState[event.code] = true;
+  event.preventDefault();
+});
+
+window.addEventListener("keyup", (event) => {
+  if (!(event.code in moveState)) return;
+  moveState[event.code] = false;
+});
+</script>
+</body>
+</html>
