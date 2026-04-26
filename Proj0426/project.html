@@ -856,7 +856,7 @@ const sampleHitboxes = [];
 const surfaceTargets = [];
 const sampleScaleTarget = new THREE.Vector3();
 const TAU = Math.PI * 2;
-const STUDIO_HDR_PATH = "HDRI/small_empty_room_1_4k.hdr";
+const STUDIO_HDR_PATH = "https://raw.githubusercontent.com/charlottezyy-web/MSD-Team66/main/HDRI/small_empty_room_1_4k.hdr";
 
 let scene;
 let camera;
@@ -989,7 +989,7 @@ const materialProfiles = {
     color: 0xb98352,
     accent: 0xd9ac82,
     emissive: 0x2e1809,
-    audioSrc: "sound effect/wood.mp3",
+    audioSrc: "https://raw.githubusercontent.com/charlottezyy-web/MSD-Team66/main/sound%20effect/wood.mp3",
     filterType: "lowpass",
     filterBaseHz: 3200,
     filterMaxHz: 4600,
@@ -1029,7 +1029,7 @@ const materialProfiles = {
     color: 0xf1e2bc,
     accent: 0xf9f2de,
     emissive: 0x2b2314,
-    audioSrc: "sound effect/paper.mp3",
+    audioSrc: "https://raw.githubusercontent.com/charlottezyy-web/MSD-Team66/main/sound%20effect/paper.mp3",
     filterType: "lowpass",
     filterBaseHz: 8000,
     filterMaxHz: 14500,
@@ -1069,7 +1069,7 @@ const materialProfiles = {
     color: 0x6f94b8,
     accent: 0x96badc,
     emissive: 0x132131,
-    audioSrc: "sound effect/fabric.mp3",
+    audioSrc: "https://raw.githubusercontent.com/charlottezyy-web/MSD-Team66/main/sound%20effect/fabric.mp3",
     filterType: "lowpass",
     filterBaseHz: 1500,
     filterMaxHz: 2200,
@@ -1109,7 +1109,7 @@ const materialProfiles = {
     color: 0x2d343f,
     accent: 0x434c59,
     emissive: 0x090b10,
-    audioSrc: "sound effect/rubber.mp3",
+    audioSrc: "https://raw.githubusercontent.com/charlottezyy-web/MSD-Team66/main/sound%20effect/rubber.mp3",
     filterType: "lowpass",
     filterBaseHz: 1500,
     filterMaxHz: 2050,
@@ -1149,7 +1149,7 @@ const materialProfiles = {
     color: 0xd4bd8d,
     accent: 0xe7d9b5,
     emissive: 0x2f2619,
-    audioSrc: "sound effect/sand.mp3",
+    audioSrc: "https://raw.githubusercontent.com/charlottezyy-web/MSD-Team66/main/sound%20effect/sand.mp3",
     filterType: "lowpass",
     filterBaseHz: 8600,
     filterMaxHz: 14500,
@@ -1189,7 +1189,7 @@ const materialProfiles = {
     color: 0xb8c2cf,
     accent: 0xd8dfe8,
     emissive: 0x161b24,
-    audioSrc: "sound effect/metal.mp3",
+    audioSrc: "https://raw.githubusercontent.com/charlottezyy-web/MSD-Team66/main/sound%20effect/metal.mp3",
     filterType: "lowpass",
     filterBaseHz: 9500,
     filterMaxHz: 13200,
@@ -1229,7 +1229,7 @@ const materialProfiles = {
     color: 0xb7ebff,
     accent: 0xe1f8ff,
     emissive: 0x102028,
-    audioSrc: "sound effect/glass.mp3",
+    audioSrc: "https://raw.githubusercontent.com/charlottezyy-web/MSD-Team66/main/sound%20effect/glass.mp3",
     filterType: "lowpass",
     filterBaseHz: 10800,
     filterMaxHz: 15000,
@@ -1269,7 +1269,7 @@ const materialProfiles = {
     color: 0xf2eee5,
     accent: 0xffffff,
     emissive: 0x221d17,
-    audioSrc: "sound effect/ceramic.mp3",
+    audioSrc: "https://raw.githubusercontent.com/charlottezyy-web/MSD-Team66/main/sound%20effect/ceramic.mp3",
     filterType: "lowpass",
     filterBaseHz: 7400,
     filterMaxHz: 11200,
@@ -1309,7 +1309,7 @@ const materialProfiles = {
     color: 0xd7f5ff,
     accent: 0xf4fdff,
     emissive: 0x0f1c23,
-    audioSrc: "sound effect/ice.mp3",
+    audioSrc: "https://raw.githubusercontent.com/charlottezyy-web/MSD-Team66/main/sound%20effect/ice.mp3",
     filterType: "lowpass",
     filterBaseHz: 9800,
     filterMaxHz: 14500,
@@ -2447,15 +2447,16 @@ class HapticAudioManager {
   reverbWet.gain.setValueAtTime(0.2, now);
     filter.connect(gain);
     gain.connect(dryGain);
-    dryGain.connect(this.audioCtx.destination);
+    const _dest = this.audioCtx._spatialBus || this.audioCtx.destination;
+    dryGain.connect(_dest);
     gain.connect(delayNode);
     delayNode.connect(delayWet);
-    delayWet.connect(this.audioCtx.destination);
+    delayWet.connect(_dest);
     delayNode.connect(delayFeedback);
     delayFeedback.connect(delayNode);
     gain.connect(convolver);
     convolver.connect(reverbWet);
-    reverbWet.connect(this.audioCtx.destination);
+    reverbWet.connect(_dest);
 
     return {
       key: materialKey,
@@ -3227,6 +3228,22 @@ async function unlockExperience() {
 
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // ── SPATIAL AUDIO BUS ──────────────────────────────────────────────
+    // All tracks route through this master panner so the entire
+    // haptic sound world is spatialised relative to the listener.
+    // We keep it as a property on audioCtx for easy access everywhere.
+    const spatialBus = audioCtx.createGain();  // final master before destination
+    spatialBus.gain.value = 1;
+    spatialBus.connect(audioCtx.destination);
+    audioCtx._spatialBus = spatialBus;
+
+    // Web Audio 3D listener defaults — camera sits at origin facing -Z
+    // We'll update these each frame from camera world position.
+    audioCtx._listenerPos  = new THREE.Vector3();
+    audioCtx._listenerFwd  = new THREE.Vector3();
+    audioCtx._listenerUp   = new THREE.Vector3();
+    audioCtx._soundPos     = new THREE.Vector3();   // current sound source world pos
   }
 
   if (!hapticAudio) {
@@ -3754,8 +3771,10 @@ function updateVirtualRaycast(cursorState) {
   interactionState.activeSurfaceMesh = hit;
   if (hit) {
     interactionState.surfaceMaterialKey = hit === frictionPad ? currentMaterial : (hit.userData.materialKey || currentMaterial);
+    interactionState.surfaceHitPoint = surfaceHits[0].point;  // world-space hit point
   } else {
     interactionState.surfaceMaterialKey = null;
+    interactionState.surfaceHitPoint = null;
   }
 }
 
@@ -3873,12 +3892,95 @@ function updateSampleTooltip(cursorState) {
   sampleTooltipEl.classList.add("show");
 }
 
+function updateSpatialAudio() {
+  if (!audioCtx || !camera || !audioCtx._spatialBus) return;
+
+  // ── Update Web Audio listener to match camera ──────────────────────
+  const listener = audioCtx.listener;
+  const camPos = camera.position;
+  const camFwd = new THREE.Vector3();
+  camera.getWorldDirection(camFwd);
+  const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+
+  // Standard Web Audio listener positioning
+  if (listener.positionX) {
+    listener.positionX.setValueAtTime(camPos.x, audioCtx.currentTime);
+    listener.positionY.setValueAtTime(camPos.y, audioCtx.currentTime);
+    listener.positionZ.setValueAtTime(camPos.z, audioCtx.currentTime);
+    listener.forwardX.setValueAtTime(camFwd.x, audioCtx.currentTime);
+    listener.forwardY.setValueAtTime(camFwd.y, audioCtx.currentTime);
+    listener.forwardZ.setValueAtTime(camFwd.z, audioCtx.currentTime);
+    listener.upX.setValueAtTime(camUp.x, audioCtx.currentTime);
+    listener.upY.setValueAtTime(camUp.y, audioCtx.currentTime);
+    listener.upZ.setValueAtTime(camUp.z, audioCtx.currentTime);
+  } else {
+    listener.setPosition(camPos.x, camPos.y, camPos.z);
+    listener.setOrientation(camFwd.x, camFwd.y, camFwd.z, camUp.x, camUp.y, camUp.z);
+  }
+
+  // ── Derive stereo pan from sound-source world position ─────────────
+  // Project the hit point (or photo frame position) into camera space,
+  // then read the local X axis for left/right pan.
+  let soundWorldPos = null;
+
+  if (interactionState.surfaceHitPoint && interactionState.surfaceActive) {
+    soundWorldPos = interactionState.surfaceHitPoint;
+  } else if (window._photoSoundWorldPos) {
+    soundWorldPos = window._photoSoundWorldPos;
+  }
+
+  // Compute pan [-1, 1] from camera-local X
+  let targetPan = 0;
+  let targetGainScale = 1;
+
+  if (soundWorldPos) {
+    // Vector from camera to sound source in world space
+    const toSound = new THREE.Vector3().subVectors(soundWorldPos, camPos);
+    const distSq = toSound.lengthSq();
+
+    // Camera right vector
+    const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+    // Dot product gives left/right component (-1 = full left, +1 = full right)
+    const rightDot = camRight.dot(toSound.normalize());
+    targetPan = clamp(rightDot * 1.4, -1, 1);   // slight exaggeration for feel
+
+    // Distance attenuation: closer = louder, 1-6m range
+    const dist = Math.sqrt(distSq);
+    targetGainScale = clamp(1 - (dist - 1) * 0.10, 0.35, 1.0);
+  }
+
+  // Smooth pan and gain
+  if (!audioCtx._currentPan)   audioCtx._currentPan   = 0;
+  if (!audioCtx._currentGainS) audioCtx._currentGainS = 1;
+  audioCtx._currentPan   += (targetPan       - audioCtx._currentPan)   * 0.12;
+  audioCtx._currentGainS += (targetGainScale - audioCtx._currentGainS) * 0.10;
+
+  // Apply via the spatialBus — we use a child StereoPannerNode created once
+  if (!audioCtx._stereoPanner) {
+    const sp = audioCtx.createStereoPanner();
+    sp.connect(audioCtx.destination);
+    // Rewire spatialBus: spatialBus → stereoPanner → destination
+    audioCtx._spatialBus.disconnect();
+    audioCtx._spatialBus.connect(sp);
+    audioCtx._stereoPanner = sp;
+  }
+
+  const now = audioCtx.currentTime;
+  audioCtx._stereoPanner.pan.cancelScheduledValues(now);
+  audioCtx._stereoPanner.pan.setValueAtTime(audioCtx._stereoPanner.pan.value, now);
+  audioCtx._stereoPanner.pan.linearRampToValueAtTime(audioCtx._currentPan, now + 0.04);
+
+  audioCtx._spatialBus.gain.cancelScheduledValues(now);
+  audioCtx._spatialBus.gain.setValueAtTime(audioCtx._spatialBus.gain.value, now);
+  audioCtx._spatialBus.gain.linearRampToValueAtTime(audioCtx._currentGainS, now + 0.06);
+}
+
 function animate() {
   requestAnimationFrame(animate);
   const delta = Math.min(clock.getDelta(), 0.05);
   const nowMs = performance.now();
 
-  updateKeyboardCamera(delta);
+  (window.updateKeyboardCamera || updateKeyboardCamera)(delta);
   updateCamera();
   updateWallOcclusion();
   materialCursor.update(delta);
@@ -3893,6 +3995,8 @@ function animate() {
   if (hapticAudio && audioState.isUnlocked) {
     hapticAudio.update(delta, cursorState, interactionState);
   }
+
+  updateSpatialAudio();
 
   animatePad();
   animateSamples();
@@ -4068,11 +4172,310 @@ startButton.addEventListener("click", () => {
   unlockExperience();
 });
 
-bindSensationControls();
-bindPanelMinimizeToggles();
-bindAdsrCanvasEditor();
-updateAudioMonitor();
-initScene();
+// ═══════════════════════════════════════════════════════
+//  iPAD TOUCH CONTROLS
+//  • Left joystick  → WASD movement
+//  • Single-finger swipe (outside joystick/UI) → orbit
+//  • Tap on material object → select material
+//  • Hand icon → toggle caress mode (touch = haptic sound, no orbit)
+// ═══════════════════════════════════════════════════════
+(function setupTouchControls() {
+
+  const IS_TOUCH = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+
+  /* ── JOYSTICK DOM ── */
+  const joyWrap = document.createElement("div");
+  joyWrap.id = "joyWrap";
+  joyWrap.style.cssText = `
+    position:fixed; bottom:28px; left:28px; z-index:40;
+    width:110px; height:110px;
+    display:${IS_TOUCH ? 'block' : 'none'};
+    pointer-events:auto; touch-action:none;
+    user-select:none; -webkit-user-select:none;
+  `;
+  joyWrap.innerHTML = `
+    <div id="joyOuter" style="
+      position:absolute; inset:0; border-radius:50%;
+      background:rgba(255,255,255,0.09);
+      border:1.5px solid rgba(255,255,255,0.22);
+      box-shadow:0 8px 28px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.2);
+      backdrop-filter:blur(12px);
+    "></div>
+    <div id="joyKnob" style="
+      position:absolute;
+      width:44px; height:44px;
+      border-radius:50%;
+      background:radial-gradient(circle at 36% 34%, rgba(255,255,255,0.45) 0%, rgba(200,220,255,0.22) 60%, rgba(120,160,220,0.18) 100%);
+      border:1.5px solid rgba(255,255,255,0.38);
+      box-shadow:0 4px 16px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.5);
+      top:50%; left:50%; transform:translate(-50%,-50%);
+      transition:box-shadow 80ms ease;
+    "></div>
+  `;
+  document.body.appendChild(joyWrap);
+
+  /* ── HAND ICON (caress mode toggle) ── */
+  const handBtn = document.createElement("button");
+  handBtn.id = "caressModeBtn";
+  handBtn.title = "抚摸模式";
+  handBtn.style.cssText = `
+    position:fixed; bottom:28px; left:152px; z-index:40;
+    width:52px; height:52px; border-radius:50%;
+    display:${IS_TOUCH ? 'flex' : 'none'}; align-items:center; justify-content:center;
+    background:rgba(255,255,255,0.1);
+    border:1.5px solid rgba(255,255,255,0.24);
+    box-shadow:0 6px 20px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.28);
+    backdrop-filter:blur(12px);
+    font-size:24px; color:#f0f8ff; cursor:pointer;
+    transition:background 160ms ease, transform 120ms ease, box-shadow 160ms ease;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  `;
+  handBtn.textContent = "🖐";
+  document.body.appendChild(handBtn);
+
+  /* ── CARESS MODE STATE ── */
+  let caressMode = false;
+
+  handBtn.addEventListener("click", () => {
+    caressMode = !caressMode;
+    if (caressMode) {
+      handBtn.style.background = "rgba(100,180,255,0.28)";
+      handBtn.style.boxShadow = "0 6px 20px rgba(80,160,255,0.34), inset 0 1px 0 rgba(255,255,255,0.28), 0 0 0 2px rgba(120,200,255,0.5)";
+      handBtn.style.transform = "scale(1.1)";
+      handBtn.textContent = "✋";
+    } else {
+      handBtn.style.background = "rgba(255,255,255,0.1)";
+      handBtn.style.boxShadow = "0 6px 20px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.28)";
+      handBtn.style.transform = "scale(1)";
+      handBtn.textContent = "🖐";
+      // Stop audio on exit
+      if (hapticAudio) hapticAudio.fadeOut(0.12);
+      interactionState.onPad = false;
+      interactionState.surfaceActive = false;
+    }
+  });
+
+  /* ── JOYSTICK LOGIC ── */
+  const joyKnob  = document.getElementById("joyKnob");
+  const JOY_R    = 33; // max knob travel radius
+  let joyActive  = false;
+  let joyId      = -1;
+  let joyOriginX = 55, joyOriginY = 55;
+  let joyVecX    = 0,  joyVecY = 0; // normalized -1..1
+
+  function joyMoveKnob(dx, dy) {
+    const dist = Math.hypot(dx, dy);
+    const limited = Math.min(dist, JOY_R);
+    const angle   = Math.atan2(dy, dx);
+    const kx      = Math.cos(angle) * limited;
+    const ky      = Math.sin(angle) * limited;
+    joyKnob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
+    joyVecX = kx / JOY_R;
+    joyVecY = ky / JOY_R;
+  }
+
+  function joyReset() {
+    joyActive = false; joyId = -1; joyVecX = 0; joyVecY = 0;
+    joyKnob.style.transform = "translate(-50%,-50%)";
+    joyKnob.style.boxShadow = "0 4px 16px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.5)";
+  }
+
+  joyWrap.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    if (joyActive) return;
+    const t = e.changedTouches[0];
+    const rect = joyWrap.getBoundingClientRect();
+    joyId = t.identifier;
+    joyOriginX = t.clientX - rect.left;
+    joyOriginY = t.clientY - rect.top;
+    joyActive = true;
+    joyKnob.style.boxShadow = "0 2px 10px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.5), 0 0 0 2px rgba(200,230,255,0.4)";
+  }, { passive: false });
+
+  joyWrap.addEventListener("touchmove", (e) => {
+    e.preventDefault();
+    for (const t of e.changedTouches) {
+      if (t.identifier !== joyId) continue;
+      const rect = joyWrap.getBoundingClientRect();
+      joyMoveKnob(t.clientX - rect.left - joyOriginX, t.clientY - rect.top - joyOriginY);
+    }
+  }, { passive: false });
+
+  joyWrap.addEventListener("touchend",    (e) => { for (const t of e.changedTouches) if (t.identifier===joyId) joyReset(); }, { passive:false });
+  joyWrap.addEventListener("touchcancel", (e) => { for (const t of e.changedTouches) if (t.identifier===joyId) joyReset(); }, { passive:false });
+
+  /* Hook joystick into the RAF loop via a global readable by updateKeyboardCamera */
+  window._joyVec = () => ({ x: joyVecX, y: joyVecY, active: joyActive });
+
+  /* ── TOUCH ORBIT + MATERIAL TAP ── */
+  let orbitTouchId  = -1;
+  let orbitLastX    = 0, orbitLastY = 0;
+  let tapStartX     = 0, tapStartY  = 0;
+  let tapStartTime  = 0;
+  const TAP_DIST_SQ = 16 * 16; // px
+  const TAP_MS      = 280;
+
+  // Raycaster for tap-to-select material
+  const tapRaycaster = new THREE.Raycaster();
+  const tapPointer   = new THREE.Vector2();
+
+  function handleTap(clientX, clientY) {
+    if (!camera) return;
+    tapPointer.x = (clientX / window.innerWidth)  *  2 - 1;
+    tapPointer.y = (clientY / window.innerHeight) * -2 + 1;
+    tapRaycaster.setFromCamera(tapPointer, camera);
+
+    // Check sample hitboxes first
+    const sampleHits = tapRaycaster.intersectObjects(sampleHitboxes, false);
+    if (sampleHits.length) {
+      const key = sampleHits[0].object.userData.materialKey;
+      if (key) { switchMaterial(key, false); return; }
+    }
+    // Check general surface targets (frictionPad etc)
+    const surfHits = tapRaycaster.intersectObjects(surfaceTargets, false);
+    if (surfHits.length) {
+      const key = surfHits[0].object.userData.materialKey || currentMaterial;
+      if (key && materialProfiles[key]) switchMaterial(key, false);
+    }
+  }
+
+  /* ── CARESS (touch → haptic audio on the pad) ── */
+  let caressTouchId = -1;
+  let caressLastX   = 0, caressLastY = 0;
+  let caressPrevX   = 0, caressPrevY = 0;
+
+  function caressStart(clientX, clientY, id) {
+    caressTouchId = id;
+    caressLastX = caressPrevX = clientX;
+    caressLastY = caressPrevY = clientY;
+    // Simulate pointer on pad
+    pointerState.x = clientX;
+    pointerState.y = clientY;
+    if (materialCursor) materialCursor.setTarget(clientX, clientY);
+    interactionState.onPad = true;
+    interactionState.surfaceActive = true;
+    interactionState.surfaceHoldUntil = performance.now() + 200;
+  }
+
+  function caressMove(clientX, clientY) {
+    caressPrevX = caressLastX; caressPrevY = caressLastY;
+    caressLastX = clientX;     caressLastY = clientY;
+    pointerState.x = clientX;
+    pointerState.y = clientY;
+    if (materialCursor) materialCursor.setTarget(clientX, clientY);
+    interactionState.onPad = true;
+    interactionState.surfaceActive = true;
+    interactionState.surfaceHoldUntil = performance.now() + 200;
+  }
+
+  function caressEnd() {
+    caressTouchId = -1;
+    interactionState.onPad = false;
+    interactionState.surfaceHoldUntil = 0;
+    if (hapticAudio) hapticAudio.fadeOut(0.14);
+  }
+
+  /* ── MAIN TOUCH HANDLERS ── */
+  document.addEventListener("touchstart", (e) => {
+    for (const t of e.changedTouches) {
+      const el = document.elementFromPoint(t.clientX, t.clientY);
+      // Skip if touch lands on existing UI controls
+      if (el && el.closest("#joyWrap, #caressModeBtn, #tuningPanel, #monitorPanel, #hud, #overlay, #frameUploadOverlay, #frameTopBar, #frameUploadHotspot")) continue;
+
+      if (caressMode) {
+        // In caress mode: finger tracks haptic
+        if (caressTouchId === -1) {
+          e.preventDefault();
+          caressStart(t.clientX, t.clientY, t.identifier);
+        }
+      } else {
+        // Normal mode: finger = orbit (and potential tap)
+        if (orbitTouchId === -1) {
+          e.preventDefault();
+          orbitTouchId = t.identifier;
+          orbitLastX   = t.clientX; orbitLastY = t.clientY;
+          tapStartX    = t.clientX; tapStartY  = t.clientY;
+          tapStartTime = performance.now();
+          orbitState.dragging = true;
+        }
+      }
+    }
+  }, { passive: false });
+
+  document.addEventListener("touchmove", (e) => {
+    for (const t of e.changedTouches) {
+      if (caressMode && t.identifier === caressTouchId) {
+        e.preventDefault();
+        caressMove(t.clientX, t.clientY);
+      } else if (!caressMode && t.identifier === orbitTouchId) {
+        e.preventDefault();
+        const dx = t.clientX - orbitLastX;
+        const dy = t.clientY - orbitLastY;
+        orbitState.yaw   -= dx * 0.006;
+        orbitState.pitch  = clamp(orbitState.pitch - dy * 0.0055, -0.12, 1.12);
+        orbitLastX = t.clientX; orbitLastY = t.clientY;
+      }
+    }
+  }, { passive: false });
+
+  document.addEventListener("touchend", (e) => {
+    for (const t of e.changedTouches) {
+      if (caressMode && t.identifier === caressTouchId) {
+        caressEnd();
+      } else if (t.identifier === orbitTouchId) {
+        orbitState.dragging = false;
+        orbitTouchId = -1;
+        // Detect tap
+        const dt   = performance.now() - tapStartTime;
+        const dSq  = (t.clientX-tapStartX)**2 + (t.clientY-tapStartY)**2;
+        if (dt < TAP_MS && dSq < TAP_DIST_SQ) {
+          handleTap(t.clientX, t.clientY);
+        }
+      }
+    }
+  }, { passive: false });
+
+  document.addEventListener("touchcancel", (e) => {
+    for (const t of e.changedTouches) {
+      if (t.identifier === caressTouchId) caressEnd();
+      if (t.identifier === orbitTouchId)  { orbitState.dragging = false; orbitTouchId = -1; }
+    }
+  }, { passive: false });
+
+  /* ── PATCH updateKeyboardCamera to also read joystick ── */
+  const _origUpdateKeyboardCamera = updateKeyboardCamera;
+  window.updateKeyboardCamera = function(delta) {
+    _origUpdateKeyboardCamera(delta);
+    const joy = window._joyVec ? window._joyVec() : null;
+    if (!joy || !joy.active || (Math.abs(joy.x) < 0.06 && Math.abs(joy.y) < 0.06)) return;
+    const forward = new THREE.Vector3(-Math.sin(orbitState.yaw), 0, -Math.cos(orbitState.yaw)).normalize();
+    const right   = new THREE.Vector3(-forward.z, 0, forward.x).normalize();
+    const speed   = 2.8 * delta;
+    const movement = new THREE.Vector3();
+    movement.add(forward.clone().multiplyScalar(-joy.y)); // Y-axis: forward/back
+    movement.add(right.clone().multiplyScalar(joy.x));    // X-axis: strafe
+    if (movement.lengthSq() > 0) {
+      movement.normalize().multiplyScalar(speed * Math.min(Math.hypot(joy.x, joy.y), 1));
+      orbitState.target.add(movement);
+      orbitState.target.y = clamp(orbitState.target.y, 0.55, 2.4);
+    }
+  };
+
+  /* ── HIDE keyboard hint on touch devices ── */
+  if (IS_TOUCH) {
+    const hintEl = document.getElementById("hint");
+    if (hintEl) hintEl.style.display = "none";
+  }
+
+  /* ── HIDE custom desktop cursor on touch devices ── */
+  if (IS_TOUCH) {
+    if (cursorEl) cursorEl.style.display = "none";
+    document.body.style.cursor = "default";
+    canvas.style.cursor = "default";
+  }
+
+})();
 
 // ─────────────────────────────────────────────────
 //  PHOTO FRAME — 3-STATE SYSTEM
@@ -4363,7 +4766,8 @@ initScene();
 
   function ensureAudio() {
     if (pAudioCtx && pAudioCtx.state!=="closed") return;
-    pAudioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    // Reuse the main audioCtx so photo frame shares the spatial bus
+    pAudioCtx = (typeof audioCtx !== "undefined" && audioCtx) || new (window.AudioContext||window.webkitAudioContext)();
   }
 
   function buildAudioGraph() {
@@ -4398,11 +4802,13 @@ initScene();
     pConvolver.buffer=irBuf;
     pReverbGain=ctx.createGain(); pReverbGain.gain.value=0.28;
 
+    // Route through spatialBus if available (shares 3D spatial system)
+    const _dest = ctx._spatialBus || ctx.destination;
     pNoiseSrc.connect(pBpFilter); pBpFilter.connect(pLpFilter);
     pLpFilter.connect(pMainGain);
-    pMainGain.connect(ctx.destination); pMainGain.connect(pConvolver);
-    pConvolver.connect(pReverbGain); pReverbGain.connect(ctx.destination);
-    pOsc.connect(pOscGain); pOscGain.connect(ctx.destination);
+    pMainGain.connect(_dest); pMainGain.connect(pConvolver);
+    pConvolver.connect(pReverbGain); pReverbGain.connect(_dest);
+    pOsc.connect(pOscGain); pOscGain.connect(_dest);
     pNoiseSrc.start(); pOsc.start();
   }
 
@@ -4481,7 +4887,8 @@ initScene();
     if (!mesh||!camera) return null;
     pRaycaster.setFromCamera(pPointer, camera);
     const hits = pRaycaster.intersectObject(mesh, false);
-    return hits.length ? hits[0].uv : null;
+    if (!hits.length) return null;
+    return { uv: hits[0].uv, point: hits[0].point };
   }
 
   /* ════════════════════════════════════════════════
@@ -4491,8 +4898,10 @@ initScene();
     updateLayout();
     if (!hasImage) return;
 
-    const uv = castCanvas(e);
-    if (uv) {
+    const hit = castCanvas(e);
+    if (hit) {
+      // Report world position for the spatial audio system
+      window._photoSoundWorldPos = hit.point;
       if (!isOverCanvas) {
         isOverCanvas = true;
         ensureAudio(); buildAudioGraph();
@@ -4501,16 +4910,17 @@ initScene();
       const vx=e.clientX-pLastX, vy=e.clientY-pLastY;
       pLastX=e.clientX; pLastY=e.clientY;
       pVelocity += (Math.sqrt(vx*vx+vy*vy) - pVelocity)*0.3;
-      const pixel = samplePixelAt(uv.x, 1-uv.y);
+      const pixel = samplePixelAt(hit.uv.x, 1-hit.uv.y);
       applyColorToAudio(pixel, Math.min(pVelocity/220,1));
     } else if (isOverCanvas) {
       isOverCanvas=false;
+      window._photoSoundWorldPos = null;
       teardownAudio();
     }
   });
 
   window.addEventListener("mouseleave", () => {
-    if (isOverCanvas) { isOverCanvas=false; teardownAudio(); }
+    if (isOverCanvas) { isOverCanvas=false; window._photoSoundWorldPos=null; teardownAudio(); }
   });
 
   /* ════════════════════════════════════════════════
